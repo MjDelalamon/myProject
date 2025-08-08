@@ -54,3 +54,38 @@
   box-shadow: 0 4px 12px rgba(252, 211, 77, 0.3);
 }
 
+/* Responsive styles for mobile */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 80vw;
+    min-width: 180px;
+    max-width: 320px;
+    height: 100vh;
+    position: fixed;
+    z-index: 1000;
+    left: -100vw;
+    transition: left 0.3s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25);
+  }
+  .sidebar.open {
+    left: 0;
+  }
+}
+
+/* Optional: overlay background for sidebar on mobile */
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.3);
+  }
+  .sidebar.open ~ .sidebar-overlay {
+    display: block;
+  }
+}
+
