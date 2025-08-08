@@ -1,0 +1,56 @@
+/* Sidebar.css */
+
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  background: linear-gradient(180deg, #f4f4f4 0%, #f9f9f9 100%);
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  color: white;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+  border-right: 1px solid #2d3748;
+  font-family: "Segoe UI", sans-serif;
+  overflow: auto;
+}
+
+.sidebar-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #000000;
+  text-align: center;
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sidebar-link {
+  color: #6b3700;
+  
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-link:hover {
+  background: #a97100;
+  color: #111827;
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(252, 211, 77, 0.3);
+}
+
