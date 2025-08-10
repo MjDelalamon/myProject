@@ -1,0 +1,55 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import "./Style/Owner.css"; // Import external CSS
+
+function Owner() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const correctPassword = "admin123";
+  const navigate = useNavigate();
+
+  const handleLogin = () => {
+    if (password === correctPassword) {
+      setIsLoggedIn(true);
+      navigate("/SideBar", { replace: true });
+      setError("");
+    } else {
+      setError("❌ Incorrect password. Please try again.");
+    }
+  };
+
+  return (
+    <div className="owner-container">
+      {!isLoggedIn ? (
+        <div className="login-card">
+          <h2 className="login-title">🔐 Owner Login</h2>
+          <input
+            type="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="login-input"
+          />
+          <button onClick={handleLogin} className="login-button">
+            Login
+          </button>
+          {error && <p className="error-message">{error}</p>}
+          <Link to="/Intro" className="back-link">
+            ← Back to Intro
+          </Link>
+        </div>
+      ) : (
+        <div className="owner-welcome">
+          <h1 className="welcome-title">👋 Welcome, Owner!</h1>
+          <Link to="/Intro" className="back-link">
+            ← Back to Intro
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default Owner;

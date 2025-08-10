@@ -1,0 +1,133 @@
+/* Global Base Styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa, #e4ecf2);
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+.wallet-container {
+  padding: 32px 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #ffffffcc;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(6px);
+}
+
+/* Headings */
+.wallet-title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin-bottom: 28px;
+  color: #2b2b2b;
+  text-align: center;
+}
+
+.section {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.section:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.section h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: #222;
+}
+
+.customer-info p {
+  margin: 8px 0;
+  font-size: 1rem;
+  color: #555;
+}
+
+/* Form Section */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.form-group select,
+.form-group input {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #f9fafb;
+  transition: border-color 0.3s;
+}
+
+.form-group select:focus,
+.form-group input:focus {
+  border-color: #7c3aed;
+  outline: none;
+  background-color: #fff;
+}
+
+.adjust-button {
+  background-color: #7c3aed;
+  color: #fff;
+  padding: 12px;
+  font-weight: 500;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+
+.adjust-button:hover {
+  background-color: #5b21b6;
+}
+
+/* Table Styles */
+.logs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.logs-table thead {
+  background-color: #f3f4f6;
+  text-align: left;
+}
+
+.logs-table th,
+.logs-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.logs-table tbody tr:hover {
+  background-color: #f9fafb;
+  transition: background-color 0.2s;
+}
+
+.logs-table td:nth-child(3) {
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* Empty Logs */
+.empty-log {
+  margin-top: 14px;
+  font-size: 0.95rem;
+  color: #888;
+  text-align: center;
+}
