@@ -40,8 +40,8 @@ export default function TakeOrder() {
   const [orders, setOrders] = useState([]);
 
   const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
-  const tax = +(subtotal * 0.12).toFixed(2);
-  const total = +(subtotal + tax).toFixed(2);
+  const points = +(subtotal * 0.01).toFixed(2);
+  const total = +subtotal.toFixed(2);
 
   function addItem() {
     const nextId = items.length ? items[items.length - 1].id + 1 : 1;
@@ -97,7 +97,7 @@ export default function TakeOrder() {
       customerId: selectedCustomerId,
       items: JSON.parse(JSON.stringify(items)),
       subtotal,
-      tax,
+      points,
       total,
       walletPayment: useWallet ? +walletPayment : 0,
       otherPayment: +cashPayment,
@@ -110,8 +110,9 @@ export default function TakeOrder() {
         prev.map((c) => {
           if (c.id !== selectedCustomer.id) return c;
           const newWallet = +(c.wallet - (order.walletPayment || 0)).toFixed(2);
-          const earned = Math.floor(order.total / 10);
-          const newPoints = c.points + earned;
+          // Keep decimals for earned points
+          const earned = parseFloat(order.points.toFixed(2));
+          const newPoints = parseFloat((c.points + earned).toFixed(2));
           return { ...c, wallet: newWallet, points: newPoints };
         })
       );
@@ -174,9 +175,34 @@ export default function TakeOrder() {
         </nav>
       </div>
 
+      <div className="sidebar">
+        <h2 className="sidebar-title">Staff Panel</h2>
+        <nav className="sidebar-nav">
+          {[
+            "dashboard",
+            "customers",
+            "orders",
+            "rewards",
+            "menu",
+            "wallet",
+            "feedback",
+            "notifications",
+            "settings",
+          ].map((path) => (
+            <Link key={path} to={`/${path}`} className="sidebar-link">
+              {path.charAt(0).toUpperCase() + path.slice(1)}
+            </Link>
+          ))}
+          <Link to="/" className="sidebar-link">
+            Logout
+          </Link>
+        </nav>
+      </div>
+
       <div className="assisted-ordering">
         <h2>Assisted Ordering (Admin)</h2>
         <div className="columns">
+          {/* Customer */}
           <div className="column">
             <h3>Customer</h3>
             <select
@@ -185,7 +211,7 @@ export default function TakeOrder() {
             >
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} {c.phone ? `(${c.phone})` : ""}
+                  {c.name} {c.phone && `(${c.phone})`}
                 </option>
               ))}
             </select>
@@ -203,11 +229,13 @@ export default function TakeOrder() {
             <button onClick={applyPhone}>Lookup</button>
             <button onClick={registerCustomer}>Register</button>
             <div className="customer-info">
-              <p>{selectedCustomer?.name}</p>
-              <p>Wallet: {selectedCustomer?.wallet}</p>
-              <p>Points: {selectedCustomer?.points}</p>
+              <p>{selectedCustomer.name}</p>
+              <p>Wallet: {selectedCustomer.wallet}</p>
+              <p>Points: {selectedCustomer.points.toFixed(2)}</p>
             </div>
           </div>
+
+          {/* Items */}
           <div className="column">
             <h3>Items</h3>
             {items.map((it) => (
@@ -219,23 +247,17 @@ export default function TakeOrder() {
                 <input
                   type="number"
                   value={it.qty}
+                  min={1}
                   onChange={(e) =>
-                    updateItem(
-                      it.id,
-                      "qty",
-                      Math.max(1, parseInt(e.target.value || "1"))
-                    )
+                    updateItem(it.id, "qty", Math.max(1, +e.target.value))
                   }
                 />
                 <input
                   type="number"
                   value={it.price}
+                  min={0}
                   onChange={(e) =>
-                    updateItem(
-                      it.id,
-                      "price",
-                      Math.max(0, parseFloat(e.target.value || "0"))
-                    )
+                    updateItem(it.id, "price", Math.max(0, +e.target.value))
                   }
                 />
                 <button onClick={() => removeItem(it.id)}>Remove</button>
@@ -243,9 +265,11 @@ export default function TakeOrder() {
             ))}
             <button onClick={addItem}>Add Item</button>
             <p>Subtotal: {subtotal}</p>
-            <p>Tax: {tax}</p>
             <p>Total: {total}</p>
+            <p>Points Earned: {points}</p>
           </div>
+
+          {/* Payments */}
           <div className="column">
             <h3>Payments</h3>
             <label>
@@ -256,34 +280,31 @@ export default function TakeOrder() {
               />{" "}
               Use Wallet
             </label>
-            {useWallet && (
-              <input
-                type="number"
-                value={walletPayment}
-                onChange={(e) =>
-                  setWalletPayment(Math.max(0, parseFloat(e.target.value || 0)))
-                }
-              />
-            )}
+            <input
+              type="number"
+              value={walletPayment}
+              min={0}
+              disabled={!useWallet}
+              onChange={(e) => setWalletPayment(Math.max(0, +e.target.value))}
+            />
             <select
               value={otherPaymentMethod}
               onChange={(e) => setOtherPaymentMethod(e.target.value)}
             >
               <option>Cash</option>
               <option>GCash</option>
-              <option>PayMaya</option>
-              <option>Card</option>
+              <option>Points</option>
             </select>
             <input
               type="number"
               value={cashPayment}
-              onChange={(e) =>
-                setCashPayment(Math.max(0, parseFloat(e.target.value || 0)))
-              }
+              onChange={(e) => setCashPayment(Math.max(0, +e.target.value))}
             />
             <button onClick={placeOrder}>Place Order</button>
           </div>
         </div>
+
+        {/* Orders */}
         <div>
           <h3>Recent Orders</h3>
           {orders.length === 0 ? (
@@ -292,7 +313,7 @@ export default function TakeOrder() {
             orders.map((o) => (
               <div key={o.id}>
                 <p>
-                  {o.id} - {o.total}
+                  {o.id} - PHP {o.total}
                 </p>
               </div>
             ))
