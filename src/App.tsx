@@ -10,6 +10,8 @@ import Orders from "./AdminPage/Orders";
 import Rewards from "./AdminPage/Reward";
 import Menu from "./AdminPage/Menu";
 import WalletSystem from "./AdminPage/Wallet";
+import SidebarStaff from "./components/SideBarStaff";
+import TakeOrder from "./StaffPage/TakeOrder";
 
 import "./Style/Dashboard.css";
 import "./Style/App.css";
@@ -21,6 +23,7 @@ import "./Style/Order.css";
 import "./Style/Reward.css";
 import "./Style/Menu.css";
 import "./Style/Wallet.css";
+import "./Style/TakeOrder.css";
 
 function App() {
   return (
@@ -30,12 +33,14 @@ function App() {
       <Route path="/Staff" element={<Staff />} />
       <Route path="/Owner" element={<Owner />} />
       <Route path="/Sidebar" element={<Sidebar />} />
+      <Route path="/SideBarStaff" element={<SidebarStaff />} />
       <Route path="/Dashboard" element={<Dashboard />} />
       <Route path="/customers" element={<Customer />} />
       <Route path="/orders" element={<Orders />} />
       <Route path="/rewards" element={<Rewards />} />
       <Route path="/menu" element={<Menu />} />
       <Route path="/wallet" element={<WalletSystem />} />
+      <Route path="/take-order" element={<TakeOrder />} />
     </Routes>
   );
 }

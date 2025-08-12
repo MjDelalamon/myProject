@@ -1,0 +1,97 @@
+.assisted-ordering {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  max-width: 750px;
+  margin: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0d5c1;
+}
+
+.assisted-ordering h2 {
+  margin-bottom: 20px;
+  color: #3e2f1c; /* dark brown */
+  text-align: center;
+}
+
+.columns {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.column {
+  flex: 1;
+  background: #fffaf3; /* soft cream */
+  padding: 15px;
+  border: 1px solid #d9c8b4;
+  border-radius: 8px;
+  min-width: 250px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.column h3 {
+  margin-top: 0;
+  color: #5b4636;
+  border-bottom: 2px solid #d9c8b4;
+  padding-bottom: 5px;
+}
+
+input, select, button {
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #c2b09d;
+  outline: none;
+}
+
+input:focus, select:focus {
+  border-color: #8b6b4f;
+  box-shadow: 0 0 5px rgba(139, 107, 79, 0.4);
+}
+
+button {
+  background: #8b6b4f; /* warm brown */
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background: #6f543d;
+}
+
+.customer-info {
+  margin-top: 10px;
+  background: #fdf7f1;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #e4d4c3;
+}
+
+.customer-info p {
+  margin: 4px 0;
+  color: #3e2f1c;
+}
+
+.order-item {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.order-item input {
+  flex: 1;
+}
+
+.summary p {
+  margin: 4px 0;
+  font-weight: bold;
+  color: #3e2f1c;
+}

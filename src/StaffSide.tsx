@@ -13,7 +13,7 @@ function Staff() {
     e.preventDefault();
     setError(""); // Reset error message
     if (password === correctPassword) {
-      navigate("/Dashboard", { replace: true });
+      navigate("/SideBarStaff", { replace: true });
     } else {
       setError("Incorrect password.");
     }
