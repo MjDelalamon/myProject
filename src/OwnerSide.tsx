@@ -32,7 +32,7 @@ function Owner() {
           <h2 className="login-title">🔐Please enter pin</h2>
           <input
             type="password"
-            placeholder="Enter password"
+            placeholder="Enter PIN"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="login-input"
