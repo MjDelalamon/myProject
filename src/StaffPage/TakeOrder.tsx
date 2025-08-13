@@ -176,7 +176,7 @@ export default function TakeOrder() {
       </div>
 
       <div className="assisted-ordering">
-        <h2>Assisted Ordering (Admin)</h2>
+        <h2>Assisted Ordering</h2>
         <div className="columns">
           {/* Customer */}
           <div className="column">
