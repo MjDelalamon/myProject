@@ -8,12 +8,17 @@ function Owner() {
   const [error, setError] = useState("");
 
   const correctPassword = "admin123";
+  const correctPassword2 = "staff123";
   const navigate = useNavigate();
 
   const handleLogin = () => {
     if (password === correctPassword) {
       setIsLoggedIn(true);
       navigate("/SideBar", { replace: true });
+      setError("");
+    } else if (password === correctPassword2) {
+      setIsLoggedIn(true);
+      navigate("/SideBarStaff", { replace: true });
       setError("");
     } else {
       setError("❌ Incorrect password. Please try again.");
@@ -24,7 +29,7 @@ function Owner() {
     <div className="owner-container">
       {!isLoggedIn ? (
         <div className="login-card">
-          <h2 className="login-title">🔐 Owner Login</h2>
+          <h2 className="login-title">🔐Please enter pin</h2>
           <input
             type="password"
             placeholder="Enter password"

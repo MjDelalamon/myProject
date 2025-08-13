@@ -9,10 +9,7 @@ function Intro() {
 
         <div className="intro-buttons">
           <Link to="/Owner">
-            <button className="intro-button admin-button">Admin</button>
-          </Link>
-          <Link to="/Staff">
-            <button className="intro-button staff-button">Staff</button>
+            <button className="intro-button admin-button">Start</button>
           </Link>
         </div>
       </div>
