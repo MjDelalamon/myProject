@@ -3,8 +3,8 @@
   padding: 20px;
   background: #ffffff;
   border-radius: 12px;
-  max-width: 750px;
-  margin: auto;
+  max-width: 900px;
+  margin-left: auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid #e0d5c1;
 }
