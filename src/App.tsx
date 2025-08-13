@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Sidebar from "./components/SideBar";
 import Intro from "./Intro";
-import Staff from "./StaffSide";
+
 import Owner from "./OwnerSide";
 import Dashboard from "./AdminPage/Dashboard";
 import Customer from "./AdminPage/Customer";
@@ -30,7 +30,6 @@ function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/Intro" replace />} />
       <Route path="/Intro" element={<Intro />} />
-      <Route path="/Staff" element={<Staff />} />
       <Route path="/Owner" element={<Owner />} />
       <Route path="/Sidebar" element={<Sidebar />} />
       <Route path="/SideBarStaff" element={<SidebarStaff />} />

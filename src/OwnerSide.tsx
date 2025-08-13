@@ -42,7 +42,7 @@ function Owner() {
           </button>
           {error && <p className="error-message">{error}</p>}
           <Link to="/Intro" className="back-link">
-            ← Back to Intro
+            ← Back
           </Link>
         </div>
       ) : (
