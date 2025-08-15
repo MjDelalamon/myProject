@@ -12,6 +12,7 @@ import Menu from "./AdminPage/Menu";
 import WalletSystem from "./AdminPage/Wallet";
 import SidebarStaff from "./components/SideBarStaff";
 import TakeOrder from "./StaffPage/TakeOrder";
+import QRScanner from "./StaffPage/QrScanner";
 
 import "./Style/Dashboard.css";
 import "./Style/App.css";
@@ -40,6 +41,7 @@ function App() {
       <Route path="/menu" element={<Menu />} />
       <Route path="/wallet" element={<WalletSystem />} />
       <Route path="/take-order" element={<TakeOrder />} />
+      <Route path="/qr-scanner" element={<QRScanner />} />
     </Routes>
   );
 }
