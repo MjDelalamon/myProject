@@ -145,7 +145,7 @@ export default function TakeOrder() {
           <Link to="/qr-scanner" className="sidebar-link">
             Scan QR
           </Link>
-          <Link to="/dashboard" className="sidebar-link">
+          <Link to="/take-order" className="sidebar-link">
             Take Order
           </Link>
           <Link to="/orders" className="sidebar-link">

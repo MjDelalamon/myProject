@@ -70,7 +70,7 @@ export default function QRScanner() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "center" }}>
-        <div id="reader" style={{ width: "300px" }}></div>
+        <div id="reader" style={{ width: "600px", height: "500px" }}></div>
       </div>
     </>
   );
