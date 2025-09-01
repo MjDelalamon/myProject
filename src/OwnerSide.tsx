@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AdminUserPin, StaffUserPin } from "./Firebase/firebase_firestore";
 import "./Style/Owner.css"; // Import external CSS
@@ -7,12 +7,22 @@ function Owner() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [adminPin, setAdminPin] = useState("");
+  const [staffPin, setStaffPin] = useState("");
 
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    const adminPin = await AdminUserPin();
-    const staffPin = await StaffUserPin();
+  useEffect(() => {
+    const fetchPins = async () => {
+      const admin = await AdminUserPin();
+      const staff = await StaffUserPin();
+      setAdminPin(admin);
+      setStaffPin(staff);
+    };
+    fetchPins();
+  }, []);
+
+  const handleLogin = () => {
     if (password === adminPin) {
       setIsLoggedIn(true);
       navigate("/SideBar", { replace: true });

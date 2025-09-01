@@ -45,5 +45,4 @@ const StaffUserPin = async () => {
 };
 
 export { StaffUserPin };
-
 export { AdminUserPin };
