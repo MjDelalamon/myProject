@@ -1,6 +1,6 @@
 .customer-container {
 position: absolute;
-  width: 80%;
+  width: 100%;
   max-width: 1100px;        /* Adjust width */
   left: 21%; 
   margin: 0 auto;

@@ -1,25 +1,26 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
-import { addCustomerToFirestore } from "../Firebase/customerService";
-
 interface CustomerType {
-  id: number;
+  id: string; // Firestore document ID
+  customerNumber: string; // 🔹 ID na 0001, 0002, etc.
   name: string;
   mobile: string;
   tier: "Bronze" | "Silver" | "Gold";
   status: "Active" | "Inactive";
   email: string;
   wallet: number;
-  qrCode: string; // store QR code data
-  dateJoined: string; // new
-  points: number; // new
+  qrCode: string;
+  dateJoined: string;
+  points: number;
 }
 
-const initialCustomers: CustomerType[] = [];
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
+import { addCustomerToFirestore } from "../Firebase/customerService";
+import { db } from "../Firebase/firebaseConfig";
+import { collection, onSnapshot } from "firebase/firestore";
 
 function Customer() {
-  const [customers, setCustomers] = useState<CustomerType[]>(initialCustomers);
+  const [customers, setCustomers] = useState<CustomerType[]>([]);
   const [filterTier, setFilterTier] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(
@@ -33,8 +34,20 @@ function Customer() {
     wallet: 0,
   });
 
-  // Add new customer
+  // 🔥 Fetch customers from Firestore in realtime
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "customers"), (snapshot) => {
+      const list = snapshot.docs.map((doc) => ({
+        id: doc.id, // Firestore auto id
+        ...(doc.data() as Omit<CustomerType, "id">),
+      }));
+      setCustomers(list);
+    });
 
+    return () => unsub();
+  }, []);
+
+  // Add new customer to Firestore
   const handleAddCustomer = async () => {
     const result = await addCustomerToFirestore(
       newCustomer.name,
@@ -45,23 +58,6 @@ function Customer() {
 
     if (result.success) {
       alert("Customer added successfully!");
-
-      // Update local state para lumabas agad sa table
-      setCustomers((prev) => [
-        ...prev,
-        {
-          id: prev.length > 0 ? Math.max(...prev.map((c) => c.id)) + 1 : 1,
-          name: newCustomer.name,
-          email: newCustomer.email,
-          mobile: newCustomer.mobile,
-          wallet: newCustomer.wallet,
-          tier: "Bronze",
-          status: "Active",
-          qrCode: result.qrUrl!, // galing sa Firestore update
-          dateJoined: new Date().toISOString().split("T")[0],
-          points: 0,
-        },
-      ]);
     } else {
       alert("Error adding customer: " + result.error);
     }
@@ -70,50 +66,7 @@ function Customer() {
     setNewCustomer({ name: "", email: "", mobile: "", wallet: 0 });
   };
 
-  const filteredCustomers = customers
-    .filter((customer) => {
-      const tierMatch = filterTier === "All" || customer.tier === filterTier;
-      const statusMatch =
-        filterStatus === "All" || customer.status === filterStatus;
-      return tierMatch && statusMatch;
-    })
-    .sort((a, b) => a.id - b.id);
-
-  const handleView = (customer: CustomerType) => setSelectedCustomer(customer);
-  const handleCloseModal = () => setSelectedCustomer(null);
-
-  const handleChangeTier = (id: number) => {
-    setCustomers((prev) =>
-      prev.map((cust) => {
-        if (cust.id === id) {
-          const tiers: CustomerType["tier"][] = ["Bronze", "Silver", "Gold"];
-          const currentIndex = tiers.indexOf(cust.tier);
-          const nextTier = tiers[(currentIndex + 1) % tiers.length];
-          return { ...cust, tier: nextTier };
-        }
-        return cust;
-      })
-    );
-  };
-
-  const handleUpdateWallet = (id: number) => {
-    const amountStr = prompt("Enter amount to add to wallet:");
-    if (amountStr === null) return;
-
-    const amount = parseFloat(amountStr);
-    if (isNaN(amount) || amount <= 0) {
-      alert("Please enter a valid positive number.");
-      return;
-    }
-
-    setCustomers((prev) =>
-      prev.map((cust) =>
-        cust.id === id ? { ...cust, wallet: cust.wallet + amount } : cust
-      )
-    );
-  };
-
-  const handleSuspend = (id: number) => {
+  const handleSuspend = (id: string) => {
     setCustomers((prev) =>
       prev.map((cust) =>
         cust.id === id
@@ -126,36 +79,56 @@ function Customer() {
     );
   };
 
+  const filteredCustomers = customers.filter((customer) => {
+    const tierMatch = filterTier === "All" || customer.tier === filterTier;
+    const statusMatch =
+      filterStatus === "All" || customer.status === filterStatus;
+    return tierMatch && statusMatch;
+  });
+
   return (
     <>
-      {/* Sidebar */}
       <div className="sidebar">
         <h2 className="sidebar-title">Admin Panel</h2>
         <nav className="sidebar-nav">
-          {[
-            { path: "/dashboard", label: "Dashboard" },
-            { path: "/customers", label: "Customers" },
-            { path: "/orders", label: "Orders" },
-            { path: "/rewards", label: "Rewards" },
-            { path: "/menu", label: "Menu" },
-            { path: "/wallet", label: "Wallet" },
-            { path: "/feedback", label: "Feedback" },
-            { path: "/notifications", label: "Notifications" },
-            { path: "/settings", label: "Settings" },
-            { path: "/", label: "Logout" },
-          ].map((item) => (
-            <Link to={item.path} key={item.label} className="sidebar-link">
-              {item.label}
-            </Link>
-          ))}
+          <Link to="/dashboard" className="sidebar-link">
+            Dashboard
+          </Link>
+          <Link to="/customers" className="sidebar-link">
+            Customers
+          </Link>
+          <Link to="/orders" className="sidebar-link">
+            Orders
+          </Link>
+          <Link to="/rewards" className="sidebar-link">
+            Rewards
+          </Link>
+          <Link to="/menu" className="sidebar-link">
+            Menu
+          </Link>
+          <Link to="/wallet" className="sidebar-link">
+            Wallet
+          </Link>
+          <Link to="/feedback" className="sidebar-link">
+            Feedback
+          </Link>
+          <Link to="/notifications" className="sidebar-link">
+            Notifications
+          </Link>
+          <Link to="/settings" className="sidebar-link">
+            Settings
+          </Link>
+          <Link to="/" className="sidebar-link">
+            Logout
+          </Link>
         </nav>
       </div>
 
-      {/* Customer Container */}
       <div className="customer-container">
         <h2 className="title">Customer Management</h2>
 
         <div className="filters">
+          {/* Filters */}
           <select
             value={filterTier}
             onChange={(e) => setFilterTier(e.target.value)}
@@ -180,6 +153,7 @@ function Customer() {
           </button>
         </div>
 
+        {/* Table */}
         <table className="customer-table">
           <thead>
             <tr>
@@ -192,13 +166,14 @@ function Customer() {
               <th>Wallet</th>
               <th>Points</th>
               <th>Date Joined</th>
-              <th>Actions</th>
+              <th>QR</th>
+              <th>Actions</th> {/* 🔹 Add Actions column */}
             </tr>
           </thead>
           <tbody>
             {filteredCustomers.map((customer) => (
               <tr key={customer.id}>
-                <td>{customer.id}</td>
+                <td>{customer.customerNumber}</td>
                 <td>{customer.name}</td>
                 <td>{customer.mobile}</td>
                 <td>{customer.email}</td>
@@ -208,21 +183,18 @@ function Customer() {
                 <td>{customer.points}</td>
                 <td>{customer.dateJoined}</td>
                 <td>
-                  <button className="btn" onClick={() => handleView(customer)}>
+                  {customer.qrCode && (
+                    <QRCodeSVG value={customer.qrCode} size={64} />
+                  )}
+                </td>
+                <td>
+                  <button
+                    className="btn"
+                    onClick={() => setSelectedCustomer(customer)}
+                  >
                     View
                   </button>
-                  <button
-                    className="btn"
-                    onClick={() => handleChangeTier(customer.id)}
-                  >
-                    Tier
-                  </button>
-                  <button
-                    className="btn"
-                    onClick={() => handleUpdateWallet(customer.id)}
-                  >
-                    Wallet
-                  </button>
+
                   <button
                     className="btn danger"
                     style={
@@ -240,13 +212,13 @@ function Customer() {
           </tbody>
         </table>
 
-        {/* View Modal */}
+        {/* View Customer Modal */}
         {selectedCustomer && (
           <div className="modal">
             <div className="modal-content">
               <h3>Customer Details</h3>
               <p>
-                <strong>ID:</strong> {selectedCustomer.id}
+                <strong>ID:</strong> {selectedCustomer.customerNumber}
               </p>
               <p>
                 <strong>Name:</strong> {selectedCustomer.name}
@@ -272,20 +244,17 @@ function Customer() {
               <p>
                 <strong>Date Joined:</strong> {selectedCustomer.dateJoined}
               </p>
-              <p>
-                <strong>QR Code:</strong>
-              </p>
-              <QRCodeSVG value={selectedCustomer.qrCode} size={128} />
-
+              {selectedCustomer.qrCode && (
+                <QRCodeSVG value={selectedCustomer.qrCode} size={128} />
+              )}
               <br />
-              <button className="btn" onClick={handleCloseModal}>
+              <button className="btn" onClick={() => setSelectedCustomer(null)}>
                 Close
               </button>
             </div>
           </div>
         )}
 
-        {/* Add Customer Modal */}
         {showAddModal && (
           <div className="modal">
             <div className="modal-content">
@@ -343,5 +312,4 @@ function Customer() {
     </>
   );
 }
-
 export default Customer;
