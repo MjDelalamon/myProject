@@ -1,7 +1,20 @@
-import { db, storage } from "../Firebase/firebaseConfig"; 
-import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, getDocs, collection, addDoc, updateDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import QRCode from "qrcode";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDxosd6yCZCVd2NGLlIiAthRoCfxAEUrdA",
+  authDomain: "systemproject-de072.firebaseapp.com",
+  projectId: "systemproject-de072",
+  storageBucket: "systemproject-de072.appspot.com",
+  messagingSenderId: "427445110062",
+  appId: "1:427445110062:web:3a870fac07be2b369326bf",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app); // 🔹 Add this
 
 export const addCustomerToFirestore = async (
   name: string,
@@ -10,16 +23,13 @@ export const addCustomerToFirestore = async (
   wallet: number
 ) => {
   try {
-    // Step 1: bilangin lahat ng documents para makuha next number
     const snapshot = await getDocs(collection(db, "customers"));
     const count = snapshot.size + 1;
 
-    // Step 2: gumawa ng "0001, 0002..."
     const customerNumber = count.toString().padStart(4, "0");
 
-    // Step 3: add new doc (wala pa QR code)
     const customerRef = await addDoc(collection(db, "customers"), {
-      customerNumber,  // 🔹 ito yung ID sa Firestore at table
+      customerNumber,
       name,
       email,
       mobile,
@@ -31,7 +41,6 @@ export const addCustomerToFirestore = async (
       dateJoined: new Date().toISOString(),
     });
 
-    // Step 4: generate QR from Firestore doc.id
     const qrDataUrl: string = await QRCode.toDataURL(customerRef.id);
 
     const response = await fetch(qrDataUrl);
@@ -42,12 +51,11 @@ export const addCustomerToFirestore = async (
 
     const qrUrl = await getDownloadURL(storageRef);
 
-    // Step 5: update Firestore with QR code URL
     await updateDoc(doc(db, "customers", customerRef.id), {
       qrCode: qrUrl,
     });
 
-    return { success: true };
+    return { success: true, id: customerRef.id, customerNumber };
   } catch (error) {
     console.error(error);
     return { success: false, error };
