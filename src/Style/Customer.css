@@ -1,11 +1,11 @@
 .customer-container {
 position: absolute;
-  width: 100%;
-  max-width: 1000px;        /* Adjust width */
-  left: 25%; 
+  width: 80%;
+  max-width: 1100px;        /* Adjust width */
+  left: 21%; 
   margin: 0 auto;
   padding: 40px 24px;
-  background-color: #ffffff;
+
   font-family: "Segoe UI", sans-serif;
   color: #333333;
   min-height: 100vh;

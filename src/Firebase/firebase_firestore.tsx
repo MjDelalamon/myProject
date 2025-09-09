@@ -1,22 +1,17 @@
 import { initializeApp } from "firebase/app";
-import {
-  getFirestore,
-  doc,
-  collection,
-  getDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDxosd6yCZCVd2NGLlIiAthRoCfxAEUrdA",
   authDomain: "systemproject-de072.firebaseapp.com",
   projectId: "systemproject-de072",
-  storageBucket: "systemproject-de072.firebasestorage.app",
+  storageBucket: "systemproject-de072.appspot.com", // dapat .appspot.com
   messagingSenderId: "427445110062",
   appId: "1:427445110062:web:3a870fac07be2b369326bf",
 };
 
 const app = initializeApp(firebaseConfig);
+
 const db = getFirestore(app);
 
 const AdminUserPin = async () => {

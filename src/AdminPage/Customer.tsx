@@ -1,42 +1,22 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
+import { addCustomerToFirestore } from "../Firebase/customerService";
 
-// Type definition for customer objects
 interface CustomerType {
   id: number;
   name: string;
+  mobile: string;
   tier: "Bronze" | "Silver" | "Gold";
   status: "Active" | "Inactive";
   email: string;
   wallet: number;
+  qrCode: string; // store QR code data
+  dateJoined: string; // new
+  points: number; // new
 }
 
-const initialCustomers: CustomerType[] = [
-  {
-    id: 1,
-    name: "John Doe",
-    tier: "Silver",
-    status: "Active",
-    email: "john@example.com",
-    wallet: 100,
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    tier: "Gold",
-    status: "Inactive",
-    email: "jane@example.com",
-    wallet: 50,
-  },
-  {
-    id: 3,
-    name: "Carlos Reyes",
-    tier: "Bronze",
-    status: "Active",
-    email: "carlos@example.com",
-    wallet: 75,
-  },
-];
+const initialCustomers: CustomerType[] = [];
 
 function Customer() {
   const [customers, setCustomers] = useState<CustomerType[]>(initialCustomers);
@@ -45,21 +25,62 @@ function Customer() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(
     null
   );
-
-  const filteredCustomers = customers.filter((customer) => {
-    const tierMatch = filterTier === "All" || customer.tier === filterTier;
-    const statusMatch =
-      filterStatus === "All" || customer.status === filterStatus;
-    return tierMatch && statusMatch;
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+    wallet: 0,
   });
 
-  const handleView = (customer: CustomerType) => {
-    setSelectedCustomer(customer);
+  // Add new customer
+
+  const handleAddCustomer = async () => {
+    const result = await addCustomerToFirestore(
+      newCustomer.name,
+      newCustomer.email,
+      newCustomer.mobile,
+      newCustomer.wallet
+    );
+
+    if (result.success) {
+      alert("Customer added successfully!");
+
+      // Update local state para lumabas agad sa table
+      setCustomers((prev) => [
+        ...prev,
+        {
+          id: prev.length > 0 ? Math.max(...prev.map((c) => c.id)) + 1 : 1,
+          name: newCustomer.name,
+          email: newCustomer.email,
+          mobile: newCustomer.mobile,
+          wallet: newCustomer.wallet,
+          tier: "Bronze",
+          status: "Active",
+          qrCode: result.qrUrl!, // galing sa Firestore update
+          dateJoined: new Date().toISOString().split("T")[0],
+          points: 0,
+        },
+      ]);
+    } else {
+      alert("Error adding customer: " + result.error);
+    }
+
+    setShowAddModal(false);
+    setNewCustomer({ name: "", email: "", mobile: "", wallet: 0 });
   };
 
-  const handleCloseModal = () => {
-    setSelectedCustomer(null);
-  };
+  const filteredCustomers = customers
+    .filter((customer) => {
+      const tierMatch = filterTier === "All" || customer.tier === filterTier;
+      const statusMatch =
+        filterStatus === "All" || customer.status === filterStatus;
+      return tierMatch && statusMatch;
+    })
+    .sort((a, b) => a.id - b.id);
+
+  const handleView = (customer: CustomerType) => setSelectedCustomer(customer);
+  const handleCloseModal = () => setSelectedCustomer(null);
 
   const handleChangeTier = (id: number) => {
     setCustomers((prev) =>
@@ -77,11 +98,9 @@ function Customer() {
 
   const handleUpdateWallet = (id: number) => {
     const amountStr = prompt("Enter amount to add to wallet:");
-
-    if (amountStr === null) return; // User cancelled
+    if (amountStr === null) return;
 
     const amount = parseFloat(amountStr);
-
     if (isNaN(amount) || amount <= 0) {
       alert("Please enter a valid positive number.");
       return;
@@ -109,6 +128,7 @@ function Customer() {
 
   return (
     <>
+      {/* Sidebar */}
       <div className="sidebar">
         <h2 className="sidebar-title">Admin Panel</h2>
         <nav className="sidebar-nav">
@@ -154,27 +174,39 @@ function Customer() {
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>
+
+          <button className="btn add" onClick={() => setShowAddModal(true)}>
+            + Add Customer
+          </button>
         </div>
 
         <table className="customer-table">
           <thead>
             <tr>
+              <th>ID</th>
               <th>Name</th>
+              <th>Mobile</th>
+              <th>Email</th>
               <th>Tier</th>
               <th>Status</th>
-              <th>Email</th>
               <th>Wallet</th>
+              <th>Points</th>
+              <th>Date Joined</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredCustomers.map((customer) => (
               <tr key={customer.id}>
+                <td>{customer.id}</td>
                 <td>{customer.name}</td>
+                <td>{customer.mobile}</td>
+                <td>{customer.email}</td>
                 <td>{customer.tier}</td>
                 <td>{customer.status}</td>
-                <td>{customer.email}</td>
                 <td>₱{customer.wallet}</td>
+                <td>{customer.points}</td>
+                <td>{customer.dateJoined}</td>
                 <td>
                   <button className="btn" onClick={() => handleView(customer)}>
                     View
@@ -193,6 +225,11 @@ function Customer() {
                   </button>
                   <button
                     className="btn danger"
+                    style={
+                      customer.status === "Inactive"
+                        ? { backgroundColor: "#5cb85c" }
+                        : {}
+                    }
                     onClick={() => handleSuspend(customer.id)}
                   >
                     {customer.status === "Active" ? "Suspend" : "Activate"}
@@ -203,12 +240,19 @@ function Customer() {
           </tbody>
         </table>
 
+        {/* View Modal */}
         {selectedCustomer && (
           <div className="modal">
             <div className="modal-content">
               <h3>Customer Details</h3>
               <p>
+                <strong>ID:</strong> {selectedCustomer.id}
+              </p>
+              <p>
                 <strong>Name:</strong> {selectedCustomer.name}
+              </p>
+              <p>
+                <strong>Mobile:</strong> {selectedCustomer.mobile}
               </p>
               <p>
                 <strong>Email:</strong> {selectedCustomer.email}
@@ -222,9 +266,76 @@ function Customer() {
               <p>
                 <strong>Wallet:</strong> ₱{selectedCustomer.wallet}
               </p>
+              <p>
+                <strong>Points:</strong> {selectedCustomer.points}
+              </p>
+              <p>
+                <strong>Date Joined:</strong> {selectedCustomer.dateJoined}
+              </p>
+              <p>
+                <strong>QR Code:</strong>
+              </p>
+              <QRCodeSVG value={selectedCustomer.qrCode} size={128} />
+
+              <br />
               <button className="btn" onClick={handleCloseModal}>
                 Close
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Add Customer Modal */}
+        {showAddModal && (
+          <div className="modal">
+            <div className="modal-content">
+              <h3>Add Customer</h3>
+              <input
+                type="text"
+                placeholder="Name"
+                value={newCustomer.name}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, name: e.target.value })
+                }
+              />
+              <input
+                type="text"
+                placeholder="Mobile Number"
+                value={newCustomer.mobile}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, mobile: e.target.value })
+                }
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={newCustomer.email}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, email: e.target.value })
+                }
+              />
+              <input
+                type="number"
+                placeholder="Wallet"
+                value={newCustomer.wallet}
+                onChange={(e) =>
+                  setNewCustomer({
+                    ...newCustomer,
+                    wallet: Number(e.target.value),
+                  })
+                }
+              />
+              <div className="modal-actions">
+                <button className="btn" onClick={handleAddCustomer}>
+                  Save
+                </button>
+                <button
+                  className="btn danger"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
