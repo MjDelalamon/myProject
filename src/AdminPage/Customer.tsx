@@ -163,14 +163,13 @@ function Customer() {
               <th>ID</th>
               <th>Name</th>
               <th>Mobile</th>
-              <th>Email</th>
+
               <th>Tier</th>
               <th>Status</th>
               <th>Wallet</th>
               <th>Points</th>
-              <th>Date Joined</th>
-              <th>QR</th>
-              <th>Actions</th> {/* 🔹 Add Actions column */}
+
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -179,17 +178,12 @@ function Customer() {
                 <td>{customer.customerNumber}</td>
                 <td>{customer.name}</td>
                 <td>{customer.mobile}</td>
-                <td>{customer.email}</td>
+
                 <td>{customer.tier}</td>
                 <td>{customer.status}</td>
                 <td>₱{customer.wallet}</td>
                 <td>{customer.points}</td>
-                <td>{customer.dateJoined}</td>
-                <td>
-                  {customer.qrCode && (
-                    <QRCodeSVG value={customer.qrCode} size={64} />
-                  )}
-                </td>
+
                 <td>
                   <button
                     className="btn"

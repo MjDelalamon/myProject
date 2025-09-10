@@ -12,34 +12,32 @@ import {
 } from "firebase/firestore";
 
 // ----------------- Types -----------------
-type PaymentMethod = "GCash" | "Cash";
 type AdjustMethod = "add" | "subtract";
 
-interface TopUpLog {
+interface PointsLog {
   id: string;
-  method: PaymentMethod;
+  action: AdjustMethod;
   amount: number;
   date: string;
 }
 
-interface CustomerWallet {
+interface CustomerPoints {
   id: string;
   name: string;
   mobile: string;
-  balance: number;
-  logs: TopUpLog[];
+  points: number;
+  pointsLogs: PointsLog[];
 }
 
 // ----------------- Main Component -----------------
-const WalletSystem: React.FC = () => {
+const PointsSystem: React.FC = () => {
   const [searchMobile, setSearchMobile] = useState("");
-  const [customer, setCustomer] = useState<CustomerWallet | null>(null);
+  const [customer, setCustomer] = useState<CustomerPoints | null>(null);
 
   const [adjustAmount, setAdjustAmount] = useState<number>(0);
   const [adjustMethod, setAdjustMethod] = useState<AdjustMethod>("add");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("GCash");
 
-  // 🔍 Search customer by mobile number
+  // 🔍 Search customer by mobile
   const handleSearch = async () => {
     if (!searchMobile.trim()) {
       alert("Enter a mobile number to search");
@@ -65,55 +63,55 @@ const WalletSystem: React.FC = () => {
       id: docData.id,
       name: data.name,
       mobile: data.mobile,
-      balance: data.wallet || 0,
-      logs: data.logs || [],
+      points: data.points || 0,
+      pointsLogs: data.pointsLogs || [],
     });
   };
 
-  // ⚡ Adjust Wallet
+  // ⚡ Adjust Points
   const handleAdjustment = async () => {
     if (!customer) {
       alert("Search a customer first");
       return;
     }
     if (adjustAmount <= 0) {
-      alert("❌ Amount must be greater than 0");
+      alert("❌ Points must be greater than 0");
       return;
     }
 
-    const newBalance =
+    const newPoints =
       adjustMethod === "add"
-        ? customer.balance + adjustAmount
-        : customer.balance - adjustAmount;
+        ? customer.points + adjustAmount
+        : customer.points - adjustAmount;
 
-    if (newBalance < 0) {
-      alert("⚠️ Insufficient balance");
+    if (newPoints < 0) {
+      alert("⚠️ Not enough points to subtract");
       return;
     }
 
-    const newLog: TopUpLog = {
+    const newLog: PointsLog = {
       id: uuidv4(),
-      method: paymentMethod,
+      action: adjustMethod,
       amount: adjustAmount,
       date: new Date().toISOString().split("T")[0],
     };
 
-    // update Firestore
+    // Update Firestore
     const custRef = doc(db, "customers", customer.id);
     await updateDoc(custRef, {
-      wallet: newBalance,
-      logs: adjustMethod === "add" ? [...customer.logs, newLog] : customer.logs, // subtract doesn’t add log
+      points: newPoints,
+      pointsLogs: [...customer.pointsLogs, newLog],
     });
 
-    // update state
+    // Update local state
     setCustomer({
       ...customer,
-      balance: newBalance,
-      logs: adjustMethod === "add" ? [...customer.logs, newLog] : customer.logs,
+      points: newPoints,
+      pointsLogs: [...customer.pointsLogs, newLog],
     });
 
     setAdjustAmount(0);
-    alert("✅ Wallet updated successfully!");
+    alert("✅ Points updated successfully!");
   };
 
   return (
@@ -128,6 +126,7 @@ const WalletSystem: React.FC = () => {
             { path: "/rewards", label: "Rewards" },
             { path: "/menu", label: "Menu" },
             { path: "/wallet", label: "Wallet" },
+            { path: "/points", label: "Points" },
             { path: "/feedback", label: "Feedback" },
             { path: "/notifications", label: "Notifications" },
             { path: "/settings", label: "Settings" },
@@ -140,8 +139,8 @@ const WalletSystem: React.FC = () => {
         </nav>
       </div>
 
-      <div className="wallet-container">
-        <h1 className="wallet-title">💰 Wallet System</h1>
+      <div className="points-container">
+        <h1 className="points-title">⭐ Points System</h1>
 
         {/* 🔍 Search Customer */}
         <div className="section">
@@ -167,8 +166,7 @@ const WalletSystem: React.FC = () => {
                 📱 <strong>Mobile:</strong> {customer.mobile}
               </p>
               <p>
-                💳 <strong>Wallet Balance:</strong> ₱
-                {customer.balance.toFixed(2)}
+                ⭐ <strong>Points:</strong> {customer.points.toFixed(2)}
               </p>
             </div>
 
@@ -182,25 +180,15 @@ const WalletSystem: React.FC = () => {
                     setAdjustMethod(e.target.value as AdjustMethod)
                   }
                 >
-                  <option value="add">Add Balance</option>
-                  <option value="subtract">Subtract Balance</option>
-                </select>
-
-                <select
-                  value={paymentMethod}
-                  onChange={(e) =>
-                    setPaymentMethod(e.target.value as PaymentMethod)
-                  }
-                >
-                  <option value="GCash">GCash</option>
-                  <option value="Cash">Cash</option>
+                  <option value="add">Add Points</option>
+                  <option value="subtract">Subtract Points</option>
                 </select>
 
                 <input
                   type="number"
                   value={adjustAmount}
                   onChange={(e) => setAdjustAmount(Number(e.target.value))}
-                  placeholder="Enter amount"
+                  placeholder="Enter points"
                 />
 
                 <button onClick={handleAdjustment} className="adjust-button">
@@ -211,25 +199,29 @@ const WalletSystem: React.FC = () => {
 
             {/* 📜 Logs */}
             <div className="section">
-              <h2>📜 Top-up Logs</h2>
-              {customer.logs.length > 0 ? (
+              <h2>📜 Points Logs</h2>
+              {customer.pointsLogs.length > 0 ? (
                 <table className="logs-table">
                   <thead>
                     <tr>
                       <th>#</th>
-                      <th>Method</th>
+                      <th>Action</th>
                       <th>Amount</th>
                       <th>Date</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[...customer.logs]
+                    {[...customer.pointsLogs]
                       .sort((a, b) => (a.date < b.date ? 1 : -1))
                       .map((log, index) => (
                         <tr key={log.id}>
                           <td>{index + 1}</td>
-                          <td>{log.method}</td>
-                          <td>₱{log.amount.toFixed(2)}</td>
+                          <td>
+                            {log.action === "add"
+                              ? "➕ Added"
+                              : "➖ Subtracted"}
+                          </td>
+                          <td>{log.amount}</td>
                           <td>{log.date}</td>
                         </tr>
                       ))}
@@ -246,4 +238,4 @@ const WalletSystem: React.FC = () => {
   );
 };
 
-export default WalletSystem;
+export default pointsSystem;
