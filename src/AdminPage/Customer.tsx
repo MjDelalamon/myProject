@@ -17,7 +17,7 @@ import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { addCustomerToFirestore } from "../Firebase/customerService";
 import { db } from "../Firebase/firebaseConfig";
-import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 
 function Customer() {
   const [customers, setCustomers] = useState<CustomerType[]>([]);
@@ -48,6 +48,7 @@ function Customer() {
   }, []);
 
   // Add new customer to Firestore
+  // Add new customer to Firestore
   const handleAddCustomer = async () => {
     const result = await addCustomerToFirestore(
       newCustomer.name,
@@ -57,13 +58,8 @@ function Customer() {
     );
 
     if (result.success) {
-      // Generate QR code value (pwede id or customerNumber)
-      const qrValue = result.customerNumber; // kung may ganito sa return
-      // Update Firestore with qrCode
-      await updateDoc(doc(db, "customers", result.id), {
-        qrCode: qrValue,
-      });
-
+      // Huwag nang palitan ng customerNumber
+      // Firestore service na ang nagse-set ng doc.id as qrCode
       alert("Customer added successfully with QR code!");
     } else {
       alert("Error adding customer: " + result.error);

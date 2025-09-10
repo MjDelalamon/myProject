@@ -6,7 +6,8 @@ import {
   updateDoc, 
   doc 
 } from "firebase/firestore";
-import { db } from "../Firebase/firebaseConfig";  // gamitin yung db na in-export mo
+import { db } from "../Firebase/firebaseConfig";  
+import QRCode from "qrcode";
 
 export const addCustomerToFirestore = async (
   name: string,
@@ -36,12 +37,23 @@ export const addCustomerToFirestore = async (
       dateJoined: new Date().toISOString(),
     });
 
+    // gamit ang doc ID bilang QR value
+    const qrValue = customerRef.id;
+
+    // generate QR code as Data URL (base64 image)
+    const qrCodeImage = await QRCode.toDataURL(qrValue);
+
     // update yung qrCode field with doc id
     await updateDoc(doc(db, "customers", customerRef.id), {
-      qrCode: customerRef.id,
+      qrCode: qrValue,
     });
 
-    return { success: true, id: customerRef.id, customerNumber };
+    return { 
+      success: true, 
+      id: customerRef.id, 
+      customerNumber,
+      qrCodeImage // ito yung pwede mong i-render <img src={qrCodeImage} />
+    };
   } catch (error) {
     console.error(error);
     return { success: false, error };

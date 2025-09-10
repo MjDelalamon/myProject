@@ -31,18 +31,18 @@ export default function QRScanner() {
     scanner.render(
       async (decodedText) => {
         try {
-          // decodedText = userId (dapat ito nilagay mo sa QR code nung nag-generate ka)
-          const userRef = doc(db, "users", decodedText);
+          // decodedText = doc.id (naka-save sa qrCode field)
+          const userRef = doc(db, "customers", decodedText);
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
             const userData = userSnap.data();
             alert(`Name: ${userData.name}\nEmail: ${userData.email}`);
           } else {
-            alert("User not found!");
+            alert("Customer not found!");
           }
         } catch (err) {
-          console.error("Error fetching user:", err);
+          console.error("Error fetching customer:", err);
         }
 
         // clear scanner after scan
