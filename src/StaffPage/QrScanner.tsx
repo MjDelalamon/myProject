@@ -1,10 +1,24 @@
 import React, { useEffect } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { Link } from "react-router-dom";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { initializeApp } from "firebase/app";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDxosd6yCZCVd2NGLlIiAthRoCfxAEUrdA",
+  authDomain: "systemproject-de072.firebaseapp.com",
+  projectId: "systemproject-de072",
+  storageBucket: "systemproject-de072.appspot.com", // dapat .appspot.com
+  messagingSenderId: "427445110062",
+  appId: "1:427445110062:web:3a870fac07be2b369326bf",
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getFirestore(app);
 
 export default function QRScanner() {
   useEffect(() => {
-    // Create scanner instance
     const scanner = new Html5QrcodeScanner(
       "reader",
       {
@@ -14,10 +28,24 @@ export default function QRScanner() {
       false
     );
 
-    // Render the scanner
     scanner.render(
-      (decodedText) => {
-        alert(`Scanned: ${decodedText}`);
+      async (decodedText) => {
+        try {
+          // decodedText = userId (dapat ito nilagay mo sa QR code nung nag-generate ka)
+          const userRef = doc(db, "users", decodedText);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            alert(`Name: ${userData.name}\nEmail: ${userData.email}`);
+          } else {
+            alert("User not found!");
+          }
+        } catch (err) {
+          console.error("Error fetching user:", err);
+        }
+
+        // clear scanner after scan
         scanner.clear().catch((err) => console.error("Clear failed:", err));
       },
       (error) => {
@@ -25,7 +53,6 @@ export default function QRScanner() {
       }
     );
 
-    // Cleanup when component unmounts
     return () => {
       scanner.clear().catch((err) => console.error("Clear failed:", err));
     };
