@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { Link } from "react-router-dom";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
-import { QRCodeSVG } from "qrcode.react"; // 🔹 para ma-display ulit QR
 
 const firebaseConfig = {
   apiKey: "AIzaSyDxosd6yCZCVd2NGLlIiAthRoCfxAEUrdA",
@@ -17,23 +16,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-interface CustomerType {
-  customerNumber: string;
-  name: string;
-  mobile: string;
-  email: string;
-  tier: string;
-  status: string;
-  wallet: number;
-  points: number;
-  dateJoined: string;
-  qrCode: string;
-}
-
 export default function QRScanner() {
-  const [scannedCustomer, setScannedCustomer] = useState<CustomerType | null>(
-    null
-  );
+  const [customer, setCustomer] = useState<any>(null);
+  const [amount, setAmount] = useState<number>(0);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
@@ -49,18 +35,15 @@ export default function QRScanner() {
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
-            const userData = userSnap.data() as CustomerType;
-            setScannedCustomer(userData);
+            setCustomer({ id: decodedText, ...userSnap.data() });
+            setShowModal(true);
           } else {
-            setScannedCustomer(null);
             alert("Customer not found!");
           }
         } catch (err) {
           console.error("Error fetching customer:", err);
         }
-
-        // wag muna i-clear agad para makita ulit scanner sa page
-        // scanner.clear().catch((err) => console.error("Clear failed:", err));
+        scanner.clear().catch((err) => console.error("Clear failed:", err));
       },
       (error) => {
         console.warn(error);
@@ -71,6 +54,27 @@ export default function QRScanner() {
       scanner.clear().catch((err) => console.error("Clear failed:", err));
     };
   }, []);
+
+  // Function to update points
+  const handleUpdatePoints = async () => {
+    if (!customer) return;
+
+    const earnedPoints = amount * 0.01;
+    const newPoints = (customer.points || 0) + earnedPoints;
+
+    try {
+      await updateDoc(doc(db, "customers", customer.id), {
+        points: newPoints,
+      });
+
+      alert(`Updated! ${customer.name} earned ${earnedPoints} points.`);
+      setCustomer({ ...customer, points: newPoints });
+      setShowModal(false);
+      setAmount(0);
+    } catch (err) {
+      console.error("Error updating points:", err);
+    }
+  };
 
   return (
     <>
@@ -114,62 +118,46 @@ export default function QRScanner() {
         <div id="reader" style={{ width: "600px", height: "500px" }}></div>
       </div>
 
-      {/* 🔹 Customer Details Card */}
-      {scannedCustomer && (
-        <div
-          className="modal"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginTop: "20px",
-          }}
-        >
-          <div
-            className="modal-content"
-            style={{ padding: "20px", maxWidth: "400px" }}
-          >
+      {/* Modal */}
+      {showModal && customer && (
+        <div className="modal">
+          <div className="modal-content">
             <h3>Customer Details</h3>
             <p>
-              <strong>ID:</strong> {scannedCustomer.customerNumber}
+              <strong>ID:</strong> {customer.customerNumber}
             </p>
             <p>
-              <strong>Name:</strong> {scannedCustomer.name}
+              <strong>Name:</strong> {customer.name}
             </p>
             <p>
-              <strong>Mobile:</strong> {scannedCustomer.mobile}
+              <strong>Email:</strong> {customer.email}
             </p>
             <p>
-              <strong>Email:</strong> {scannedCustomer.email}
+              <strong>Wallet:</strong> ₱{customer.wallet}
             </p>
             <p>
-              <strong>Tier:</strong> {scannedCustomer.tier}
-            </p>
-            <p>
-              <strong>Status:</strong> {scannedCustomer.status}
-            </p>
-            <p>
-              <strong>Wallet:</strong> ₱{scannedCustomer.wallet}
-            </p>
-            <p>
-              <strong>Points:</strong> {scannedCustomer.points}
-            </p>
-            <p>
-              <strong>Date Joined:</strong> {scannedCustomer.dateJoined}
+              <strong>Current Points:</strong> {customer.points}
             </p>
 
-            {scannedCustomer.qrCode && (
-              <div style={{ marginTop: "10px" }}>
-                <QRCodeSVG value={scannedCustomer.qrCode} size={128} />
-              </div>
-            )}
+            <input
+              type="number"
+              placeholder="Enter purchase amount"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+            />
+            <p>Earned Points: {amount * 0.01}</p>
 
-            <button
-              className="btn"
-              style={{ marginTop: "10px" }}
-              onClick={() => setScannedCustomer(null)}
-            >
-              Close
-            </button>
+            <div className="modal-actions">
+              <button className="btn" onClick={handleUpdatePoints}>
+                Save
+              </button>
+              <button
+                className="btn danger"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
