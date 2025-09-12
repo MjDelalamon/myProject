@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Link } from "react-router-dom";
+
 import { db } from "../Firebase/firebaseConfig";
+import Sidebar from "../components/SideBar";
 import {
   collection,
   query,
@@ -118,27 +119,7 @@ const WalletSystem: React.FC = () => {
 
   return (
     <>
-      <div className="sidebar">
-        <h2 className="sidebar-title">Admin Panel</h2>
-        <nav className="sidebar-nav">
-          {[
-            { path: "/dashboard", label: "Dashboard" },
-            { path: "/customers", label: "Customers" },
-            { path: "/orders", label: "Orders" },
-            { path: "/rewards", label: "Rewards" },
-            { path: "/menu", label: "Menu" },
-            { path: "/wallet", label: "Wallet" },
-            { path: "/feedback", label: "Feedback" },
-            { path: "/notifications", label: "Notifications" },
-            { path: "/settings", label: "Settings" },
-            { path: "/", label: "Logout" },
-          ].map((item) => (
-            <Link to={item.path} key={item.label} className="sidebar-link">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
+      <Sidebar />
 
       <div className="wallet-container">
         <h1 className="wallet-title">💰 Wallet System</h1>

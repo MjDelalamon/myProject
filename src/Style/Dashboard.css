@@ -87,6 +87,41 @@
   font-style: italic;
 }
 
+/* Add minimal layout for assisted-ordering page */
+.assisted-ordering {
+  margin-left: 260px;
+  padding: 32px 16px;
+  background: #fffdfb;
+  min-height: 100vh;
+}
+.columns {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.column {
+  flex: 1 1 300px;
+  min-width: 260px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 18px 14px;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) {
+  .assisted-ordering {
+    margin-left: 0;
+    padding: 12px 2vw;
+  }
+  .columns {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .column {
+    min-width: 0;
+    width: 100%;
+  }
+}
 @media (max-width: 768px) {
   .dashboard-container {
     padding: 18px 6vw;

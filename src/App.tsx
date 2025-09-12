@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Sidebar from "./components/SideBar";
 import Intro from "./Intro";
-
 import Owner from "./OwnerSide";
 import Dashboard from "./AdminPage/Dashboard";
 import Customer from "./AdminPage/Customer";
@@ -13,7 +12,6 @@ import WalletSystem from "./AdminPage/Wallet";
 import SidebarStaff from "./components/SideBarStaff";
 import TakeOrder from "./StaffPage/TakeOrder";
 import QRScanner from "./StaffPage/QrScanner";
-import pointsSystem from "./AdminPage/PointSystem";
 
 import "./Style/Dashboard.css";
 import "./Style/App.css";
@@ -38,7 +36,7 @@ function App() {
       <Route path="/Dashboard" element={<Dashboard />} />
       <Route path="/customers" element={<Customer />} />
       <Route path="/orders" element={<Orders />} />
-      <Route path="/points" element={<pointsSystem />} />
+
       <Route path="/rewards" element={<Rewards />} />
       <Route path="/menu" element={<Menu />} />
       <Route path="/wallet" element={<WalletSystem />} />

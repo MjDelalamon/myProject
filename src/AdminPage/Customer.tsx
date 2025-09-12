@@ -1,6 +1,13 @@
+import { useEffect, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { addCustomerToFirestore } from "../Firebase/customerService";
+import { db } from "../Firebase/firebaseConfig";
+import { collection, onSnapshot } from "firebase/firestore";
+import Sidebar from "../components/SideBar";
+
 interface CustomerType {
   id: string; // Firestore document ID
-  customerNumber: string; // 🔹 ID na 0001, 0002, etc.
+  customerNumber: string; // e.g., 0001, 0002, etc.
   name: string;
   mobile: string;
   tier: "Bronze" | "Silver" | "Gold";
@@ -12,17 +19,11 @@ interface CustomerType {
   points: number;
 }
 
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
-import { addCustomerToFirestore } from "../Firebase/customerService";
-import { db } from "../Firebase/firebaseConfig";
-import { collection, onSnapshot } from "firebase/firestore";
-
 function Customer() {
   const [customers, setCustomers] = useState<CustomerType[]>([]);
   const [filterTier, setFilterTier] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [searchMobile, setSearchMobile] = useState(""); // 🔍 search input
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(
     null
   );
@@ -38,7 +39,7 @@ function Customer() {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "customers"), (snapshot) => {
       const list = snapshot.docs.map((doc) => ({
-        id: doc.id, // Firestore auto id
+        id: doc.id,
         ...(doc.data() as Omit<CustomerType, "id">),
       }));
       setCustomers(list);
@@ -47,8 +48,7 @@ function Customer() {
     return () => unsub();
   }, []);
 
-  // Add new customer to Firestore
-  // Add new customer to Firestore
+  // ➕ Add new customer
   const handleAddCustomer = async () => {
     const result = await addCustomerToFirestore(
       newCustomer.name,
@@ -58,8 +58,6 @@ function Customer() {
     );
 
     if (result.success) {
-      // Huwag nang palitan ng customerNumber
-      // Firestore service na ang nagse-set ng doc.id as qrCode
       alert("Customer added successfully with QR code!");
     } else {
       alert("Error adding customer: " + result.error);
@@ -69,6 +67,7 @@ function Customer() {
     setNewCustomer({ name: "", email: "", mobile: "", wallet: 0 });
   };
 
+  // 🚫 Suspend/Activate customer
   const handleSuspend = (id: string) => {
     setCustomers((prev) =>
       prev.map((cust) =>
@@ -82,56 +81,27 @@ function Customer() {
     );
   };
 
+  // ✅ Filtered customers list
   const filteredCustomers = customers.filter((customer) => {
     const tierMatch = filterTier === "All" || customer.tier === filterTier;
     const statusMatch =
       filterStatus === "All" || customer.status === filterStatus;
-    return tierMatch && statusMatch;
+    const mobileMatch = customer.mobile
+      .toLowerCase()
+      .includes(searchMobile.toLowerCase());
+
+    return tierMatch && statusMatch && mobileMatch;
   });
 
   return (
     <>
-      <div className="sidebar">
-        <h2 className="sidebar-title">Admin Panel</h2>
-        <nav className="sidebar-nav">
-          <Link to="/dashboard" className="sidebar-link">
-            Dashboard
-          </Link>
-          <Link to="/customers" className="sidebar-link">
-            Customers
-          </Link>
-          <Link to="/orders" className="sidebar-link">
-            Orders
-          </Link>
-          <Link to="/rewards" className="sidebar-link">
-            Rewards
-          </Link>
-          <Link to="/menu" className="sidebar-link">
-            Menu
-          </Link>
-          <Link to="/wallet" className="sidebar-link">
-            Wallet
-          </Link>
-          <Link to="/feedback" className="sidebar-link">
-            Feedback
-          </Link>
-          <Link to="/notifications" className="sidebar-link">
-            Notifications
-          </Link>
-          <Link to="/settings" className="sidebar-link">
-            Settings
-          </Link>
-          <Link to="/" className="sidebar-link">
-            Logout
-          </Link>
-        </nav>
-      </div>
+      <Sidebar />
 
       <div className="customer-container">
         <h2 className="title">Customer Management</h2>
 
+        {/* Filters */}
         <div className="filters">
-          {/* Filters */}
           <select
             value={filterTier}
             onChange={(e) => setFilterTier(e.target.value)}
@@ -151,6 +121,14 @@ function Customer() {
             <option value="Inactive">Inactive</option>
           </select>
 
+          {/* 🔍 Search input */}
+          <input
+            type="text"
+            placeholder="Search by Mobile Number"
+            value={searchMobile}
+            onChange={(e) => setSearchMobile(e.target.value)}
+          />
+
           <button className="btn add" onClick={() => setShowAddModal(true)}>
             + Add Customer
           </button>
@@ -163,12 +141,10 @@ function Customer() {
               <th>ID</th>
               <th>Name</th>
               <th>Mobile</th>
-
               <th>Tier</th>
               <th>Status</th>
               <th>Wallet</th>
               <th>Points</th>
-
               <th>Actions</th>
             </tr>
           </thead>
@@ -178,12 +154,10 @@ function Customer() {
                 <td>{customer.customerNumber}</td>
                 <td>{customer.name}</td>
                 <td>{customer.mobile}</td>
-
                 <td>{customer.tier}</td>
                 <td>{customer.status}</td>
                 <td>₱{customer.wallet}</td>
                 <td>{customer.points}</td>
-
                 <td>
                   <button
                     className="btn"
@@ -191,7 +165,6 @@ function Customer() {
                   >
                     View
                   </button>
-
                   <button
                     className="btn danger"
                     style={
@@ -252,6 +225,7 @@ function Customer() {
           </div>
         )}
 
+        {/* Add Customer Modal */}
         {showAddModal && (
           <div className="modal">
             <div className="modal-content">
@@ -309,4 +283,5 @@ function Customer() {
     </>
   );
 }
+
 export default Customer;

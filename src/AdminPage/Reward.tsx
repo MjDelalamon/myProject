@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+
+import Sidebar from "../components/SideBar";
 
 interface Promotion {
   id: number;
@@ -73,27 +74,7 @@ function Rewards() {
 
   return (
     <>
-      <div className="sidebar">
-        <h2 className="sidebar-title">Admin Panel</h2>
-        <nav className="sidebar-nav">
-          {[
-            { path: "/dashboard", label: "Dashboard" },
-            { path: "/customers", label: "Customers" },
-            { path: "/orders", label: "Orders" },
-            { path: "/rewards", label: "Rewards" },
-            { path: "/menu", label: "Menu" },
-            { path: "/wallet", label: "Wallet" },
-            { path: "/feedback", label: "Feedback" },
-            { path: "/notifications", label: "Notifications" },
-            { path: "/settings", label: "Settings" },
-            { path: "/", label: "Logout" },
-          ].map((item) => (
-            <Link to={item.path} key={item.label} className="sidebar-link">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
+      <Sidebar />
 
       <div className="p-6 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">🎁 Rewards & Promotions</h1>

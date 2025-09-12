@@ -1,43 +1,57 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 function Sidebar() {
+  const [hidden, setHidden] = useState(false);
+
+  const links = [
+    { to: "/dashboard", label: "Dashboard" },
+    { to: "/customers", label: "Customers" },
+    { to: "/orders", label: "Orders" },
+    { to: "/rewards", label: "Rewards" },
+    { to: "/menu", label: "Menu" },
+    { to: "/wallet", label: "Wallet" },
+    { to: "/feedback", label: "Feedback" },
+    { to: "/notifications", label: "Notifications" },
+    { to: "/settings", label: "Settings" },
+    { to: "/", label: "Logout" },
+  ];
+
   return (
     <>
-      <div className="sidebar">
+      {/* Sidebar (slides out/in based on .hidden) */}
+      <aside
+        className={`sidebar ${hidden ? "hidden" : ""}`}
+        aria-hidden={hidden}
+      >
         <h2 className="sidebar-title">Admin Panel</h2>
+
         <nav className="sidebar-nav">
-          <Link to="/dashboard" className="sidebar-link">
-            Dashboard
-          </Link>
-          <Link to="/customers" className="sidebar-link">
-            Customers
-          </Link>
-          <Link to="/orders" className="sidebar-link">
-            Orders
-          </Link>
-          <Link to="/rewards" className="sidebar-link">
-            Rewards
-          </Link>
-          <Link to="/menu" className="sidebar-link">
-            Menu
-          </Link>
-          <Link to="/wallet" className="sidebar-link">
-            Wallet
-          </Link>
-          <Link to="/feedback" className="sidebar-link">
-            Feedback
-          </Link>
-          <Link to="/notifications" className="sidebar-link">
-            Notifications
-          </Link>
-          <Link to="/settings" className="sidebar-link">
-            Settings
-          </Link>
-          <Link to="/" className="sidebar-link">
-            Logout
-          </Link>
+          {links.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                isActive ? "sidebar-link active" : "sidebar-link"
+              }
+              tabIndex={hidden ? -1 : 0}
+            >
+              {label}
+            </NavLink>
+          ))}
         </nav>
-      </div>
+      </aside>
+
+      {/* Toggle button with icons */}
+      <button
+        className="toggle-btn"
+        onClick={() => setHidden((s) => !s)}
+        aria-pressed={!hidden}
+        aria-label={hidden ? "Open sidebar" : "Close sidebar"}
+      >
+        {hidden ? <FiChevronRight size={20} /> : <FiChevronLeft size={20} />}
+      </button>
     </>
   );
 }
