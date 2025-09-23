@@ -8,7 +8,7 @@ import Sidebar from "../components/SideBar";
 interface CustomerType {
   id: string; // Firestore document ID
   customerNumber: string; // e.g., 0001, 0002, etc.
-  name: string;
+  fullName: string;
   mobile: string;
   tier: "Bronze" | "Silver" | "Gold";
   status: "Active" | "Inactive";
@@ -152,7 +152,7 @@ function Customer() {
             {filteredCustomers.map((customer) => (
               <tr key={customer.id}>
                 <td>{customer.customerNumber}</td>
-                <td>{customer.name}</td>
+                <td>{customer.fullName}</td>
                 <td>{customer.mobile}</td>
                 <td>{customer.tier}</td>
                 <td>{customer.status}</td>
@@ -191,7 +191,7 @@ function Customer() {
                 <strong>ID:</strong> {selectedCustomer.customerNumber}
               </p>
               <p>
-                <strong>Name:</strong> {selectedCustomer.name}
+                <strong>Name:</strong> {selectedCustomer.fullName}
               </p>
               <p>
                 <strong>Mobile:</strong> {selectedCustomer.mobile}
@@ -254,17 +254,7 @@ function Customer() {
                   setNewCustomer({ ...newCustomer, email: e.target.value })
                 }
               />
-              <input
-                type="number"
-                placeholder="Wallet"
-                value={newCustomer.wallet}
-                onChange={(e) =>
-                  setNewCustomer({
-                    ...newCustomer,
-                    wallet: Number(e.target.value),
-                  })
-                }
-              />
+
               <div className="modal-actions">
                 <button className="btn" onClick={handleAddCustomer}>
                   Save

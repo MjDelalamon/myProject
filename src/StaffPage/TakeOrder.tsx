@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import SidebarStaff from "../components/SideBarStaff";
 import { Link } from "react-router-dom";
 import {
   getFirestore,
@@ -180,26 +181,7 @@ export default function TakeOrder() {
 
   return (
     <>
-      <div className="sidebar">
-        <h2 className="sidebar-title">Staff Panel</h2>
-        <nav className="sidebar-nav">
-          <Link to="/qr-scanner" className="sidebar-link">
-            Scan QR
-          </Link>
-          <Link to="/take-order" className="sidebar-link">
-            Take Order
-          </Link>
-          <Link to="/orders" className="sidebar-link">
-            Orders
-          </Link>
-          <Link to="/settings" className="sidebar-link">
-            Settings
-          </Link>
-          <Link to="/" className="sidebar-link">
-            Logout
-          </Link>
-        </nav>
-      </div>
+      <SidebarStaff />
 
       <div className="assisted-ordering">
         <h2>Assisted Ordering</h2>

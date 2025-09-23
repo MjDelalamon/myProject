@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
-import { Link } from "react-router-dom";
-import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
+
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
+import SidebarStaff from "../components/SideBarStaff";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDxosd6yCZCVd2NGLlIiAthRoCfxAEUrdA",
@@ -18,7 +19,6 @@ const db = getFirestore(app);
 
 export default function QRScanner() {
   const [customer, setCustomer] = useState<any>(null);
-  const [amount, setAmount] = useState<number>(0);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
@@ -55,64 +55,9 @@ export default function QRScanner() {
     };
   }, []);
 
-  // Function to update points
-  const handleUpdatePoints = async () => {
-    if (!customer) return;
-
-    const earnedPoints = amount * 0.01;
-    const newPoints = (customer.points || 0) + earnedPoints;
-
-    try {
-      await updateDoc(doc(db, "customers", customer.id), {
-        points: newPoints,
-      });
-
-      alert(`Updated! ${customer.name} earned ${earnedPoints} points.`);
-      setCustomer({ ...customer, points: newPoints });
-      setShowModal(false);
-      setAmount(0);
-    } catch (err) {
-      console.error("Error updating points:", err);
-    }
-  };
-
   return (
     <>
-      <div className="sidebar">
-        <h2 className="sidebar-title">Staff Panel</h2>
-        <nav className="sidebar-nav">
-          <Link to="/qr-scanner" className="sidebar-link">
-            Scan QR
-          </Link>
-          <Link to="/take-order" className="sidebar-link">
-            Take Order
-          </Link>
-          <Link to="/orders" className="sidebar-link">
-            -
-          </Link>
-          <Link to="/rewards" className="sidebar-link">
-            -
-          </Link>
-          <Link to="/menu" className="sidebar-link">
-            -
-          </Link>
-          <Link to="/wallet" className="sidebar-link">
-            -
-          </Link>
-          <Link to="/feedback" className="sidebar-link">
-            -
-          </Link>
-          <Link to="/notifications" className="sidebar-link">
-            -
-          </Link>
-          <Link to="/settings" className="sidebar-link">
-            Settings
-          </Link>
-          <Link to="/" className="sidebar-link">
-            Logout
-          </Link>
-        </nav>
-      </div>
+      <SidebarStaff />
 
       <div style={{ display: "flex", justifyContent: "center" }}>
         <div id="reader" style={{ width: "600px", height: "500px" }}></div>
@@ -127,35 +72,36 @@ export default function QRScanner() {
               <strong>ID:</strong> {customer.customerNumber}
             </p>
             <p>
-              <strong>Name:</strong> {customer.name}
+              <strong>Name:</strong> {customer.fullName}
             </p>
             <p>
               <strong>Email:</strong> {customer.email}
             </p>
             <p>
+              <strong>Mobile:</strong> {customer.mobile}
+            </p>
+            <p>
               <strong>Wallet:</strong> ₱{customer.wallet}
             </p>
             <p>
-              <strong>Current Points:</strong> {customer.points}
+              <strong>Points:</strong> {customer.points}
+            </p>
+            <p>
+              <strong>Status:</strong> {customer.status}
+            </p>
+            <p>
+              <strong>Tier:</strong> {customer.tier}
+            </p>
+            <p>
+              <strong>Date Joined:</strong> {customer.createdAt}
             </p>
 
-            <input
-              type="number"
-              placeholder="Enter purchase amount"
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
-            />
-            <p>Earned Points: {amount * 0.01}</p>
-
             <div className="modal-actions">
-              <button className="btn" onClick={handleUpdatePoints}>
-                Save
-              </button>
               <button
                 className="btn danger"
                 onClick={() => setShowModal(false)}
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>

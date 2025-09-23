@@ -7,7 +7,6 @@ import {
   doc 
 } from "firebase/firestore";
 import { db } from "../Firebase/firebaseConfig";  
-import QRCode from "qrcode";
 
 export const addCustomerToFirestore = async (
   name: string,
@@ -16,14 +15,14 @@ export const addCustomerToFirestore = async (
   wallet: number
 ) => {
   try {
-    // bilangin existing customers
+    // 📌 Bilangin existing customers
     const snapshot = await getDocs(collection(db, "customers"));
     const count = snapshot.size + 1;
 
-    // auto-generate customer number, ex: 0001, 0002...
+    // 📌 Auto-generate customer number (ex: 0001, 0002...)
     const customerNumber = count.toString().padStart(4, "0");
 
-    // create customer document
+    // 📌 Create initial customer document
     const customerRef = await addDoc(collection(db, "customers"), {
       customerNumber,
       name,
@@ -33,17 +32,14 @@ export const addCustomerToFirestore = async (
       tier: "Bronze",
       status: "Active",
       points: 0,
-      qrCode: "", // i-uupdate agad after
+      qrCode: "", // placeholder muna
       dateJoined: new Date().toISOString(),
     });
 
-    // gamit ang doc ID bilang QR value
+    // 📌 Gamitin ang doc ID bilang QR value
     const qrValue = customerRef.id;
 
-    // generate QR code as Data URL (base64 image)
-    const qrCodeImage = await QRCode.toDataURL(qrValue);
-
-    // update yung qrCode field with doc id
+    // 📌 Update Firestore with QR value (NOT base64)
     await updateDoc(doc(db, "customers", customerRef.id), {
       qrCode: qrValue,
     });
@@ -52,10 +48,10 @@ export const addCustomerToFirestore = async (
       success: true, 
       id: customerRef.id, 
       customerNumber,
-      qrCodeImage // ito yung pwede mong i-render <img src={qrCodeImage} />
+      qrValue // 👉 Pareho sa mobile, use this to generate QR on frontend
     };
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error adding customer:", error);
     return { success: false, error };
   }
 };

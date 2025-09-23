@@ -25,11 +25,11 @@ function Owner() {
   const handleLogin = () => {
     if (password === adminPin) {
       setIsLoggedIn(true);
-      navigate("/SideBar", { replace: true });
+      navigate("/Dashboard", { replace: true });
       setError("");
     } else if (password === staffPin) {
       setIsLoggedIn(true);
-      navigate("/SideBarStaff", { replace: true });
+      navigate("/take-order", { replace: true });
       setError("");
     } else {
       setError("❌ Incorrect password. Please try again.");
