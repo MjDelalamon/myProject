@@ -69,13 +69,10 @@ export default function QRScanner() {
           <div className="modal-content">
             <h3>Customer Details</h3>
             <p>
-              <strong>ID:</strong> {customer.customerNumber}
+              <strong>Email:</strong> {customer.email}
             </p>
             <p>
               <strong>Name:</strong> {customer.fullName}
-            </p>
-            <p>
-              <strong>Email:</strong> {customer.email}
             </p>
             <p>
               <strong>Mobile:</strong> {customer.mobile}
@@ -93,7 +90,10 @@ export default function QRScanner() {
               <strong>Tier:</strong> {customer.tier}
             </p>
             <p>
-              <strong>Date Joined:</strong> {customer.createdAt}
+              <strong>Date Joined:</strong>{" "}
+              {customer.createdAt?.toDate
+                ? customer.createdAt.toDate().toLocaleDateString()
+                : customer.createdAt}
             </p>
 
             <div className="modal-actions">

@@ -53,7 +53,7 @@ export default function TakeOrder() {
       });
       setCustomers(list);
     };
-    fetchCustomers();
+    fetchCustomers(); 
   }, []);
 
   // 🔹 Search by mobile
