@@ -1,16 +1,23 @@
-import React, { useState } from "react";
-
+import React, { useEffect, useState } from "react";
 import Sidebar from "../components/SideBar";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "../Firebase/firebaseConfig";
 
 // Define the shape of an order
 type Order = {
   id: string;
-  customer: string;
+  customerEmail: string;
   date: string;
-  amount: string;
+  amount: number;
   status: "Pending" | "Completed" | "Canceled";
-  items: string[];
-  walletUsed: number;
+  item: string;
+  paymentMethod: string;
 };
 
 const Orders: React.FC = () => {
@@ -19,34 +26,48 @@ const Orders: React.FC = () => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: "ORD001",
-      customer: "Jane Smith",
-      date: "2025-07-30",
-      amount: "₱1200",
-      status: "Pending",
-      items: ["Latte", "Donut"],
-      walletUsed: 100,
-    },
-    {
-      id: "ORD002",
-      customer: "John Doe",
-      date: "2025-07-29",
-      amount: "₱750",
-      status: "Completed",
-      items: ["Americano"],
-      walletUsed: 0,
-    },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [updateMode, setUpdateMode] = useState<boolean>(false);
   const [newStatus, setNewStatus] = useState<Order["status"]>("Pending");
 
+  // 🔹 Fetch orders from Firestore
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "orders"));
+        const fetchedOrders: Order[] = [];
+
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          fetchedOrders.push({
+            id: docSnap.id,
+            customerEmail: data.customerEmail,
+            date: data.date?.toDate().toISOString().split("T")[0] || "", // format date
+            amount: data.amount,
+            status: data.status,
+            item: data.item,
+            paymentMethod: data.paymentMethod,
+          });
+        });
+
+        setOrders(fetchedOrders);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  // 🔎 Filters
   const filteredOrders = orders.filter((order) => {
-    const matchesSearch = order.customer
+    const matchesSearch = order.customerEmail
       .toLowerCase()
       .includes(search.toLowerCase());
     const matchesStatus = statusFilter === "" || order.status === statusFilter;
@@ -70,15 +91,26 @@ const Orders: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleStatusUpdate = () => {
+  // 🔹 Update Firestore order status
+  const handleStatusUpdate = async () => {
     if (selectedOrder) {
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === selectedOrder.id
-            ? { ...order, status: newStatus }
-            : order
-        )
-      );
+      try {
+        const orderRef = doc(db, "orders", selectedOrder.id);
+        await updateDoc(orderRef, {
+          status: newStatus,
+          updatedAt: serverTimestamp(),
+        });
+
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === selectedOrder.id
+              ? { ...order, status: newStatus }
+              : order
+          )
+        );
+      } catch (err) {
+        console.error("Error updating order:", err);
+      }
     }
     setShowModal(false);
   };
@@ -90,6 +122,7 @@ const Orders: React.FC = () => {
       <div className="orders-container">
         <h2 className="orders-title">📦 Orders & Transactions</h2>
 
+        {/* 🔎 Filters */}
         <div className="filters">
           <input
             type="text"
@@ -118,45 +151,51 @@ const Orders: React.FC = () => {
           </select>
         </div>
 
-        <table className="orders-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Customer</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.map((order) => (
-              <tr key={order.id}>
-                <td>{order.id}</td>
-                <td>{order.customer}</td>
-                <td>{order.date}</td>
-                <td>{order.amount}</td>
-                <td>{order.status}</td>
-                <td>
-                  <button
-                    onClick={() => handleView(order)}
-                    className="btn view"
-                  >
-                    View
-                  </button>
-                  <button
-                    onClick={() => handleUpdateClick(order)}
-                    className="btn update"
-                  >
-                    Update
-                  </button>
-                </td>
+        {/* 📋 Orders Table */}
+        {loading ? (
+          <p>Loading orders...</p>
+        ) : (
+          <table className="orders-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredOrders.map((order) => (
+                <tr key={order.id}>
+                  <td>{order.id}</td>
+                  <td>{order.customerEmail}</td>
+                  <td>{order.date}</td>
+                  <td>₱{order.amount}</td>
+                  <td>{order.status}</td>
+                  <td>
+                    <button
+                      onClick={() => handleView(order)}
+                      className="btn view"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleUpdateClick(order)}
+                      className="btn update"
+                    >
+                      Update
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
+      {/* 🔹 Modal */}
       {showModal && selectedOrder && (
         <div className="modal">
           <div className="modal-content">
@@ -165,19 +204,19 @@ const Orders: React.FC = () => {
               <strong>Order ID:</strong> {selectedOrder.id}
             </p>
             <p>
-              <strong>Customer:</strong> {selectedOrder.customer}
+              <strong>Customer:</strong> {selectedOrder.customerEmail}
             </p>
             <p>
               <strong>Date:</strong> {selectedOrder.date}
             </p>
             <p>
-              <strong>Amount:</strong> {selectedOrder.amount}
+              <strong>Amount:</strong> ₱{selectedOrder.amount}
             </p>
             <p>
-              <strong>Items:</strong> {selectedOrder.items.join(", ")}
+              <strong>Item:</strong> {selectedOrder.item}
             </p>
             <p>
-              <strong>Wallet Used:</strong> ₱{selectedOrder.walletUsed}
+              <strong>Payment Method:</strong> {selectedOrder.paymentMethod}
             </p>
             {updateMode ? (
               <>
