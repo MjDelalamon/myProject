@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-
-import { db } from "../Firebase/firebaseConfig";
 import Sidebar from "../components/SideBar";
+import { db } from "../Firebase/firebaseConfig";
 import {
   collection,
   query,
@@ -10,17 +9,18 @@ import {
   getDocs,
   updateDoc,
   doc,
+  onSnapshot,
 } from "firebase/firestore";
 
 // ----------------- Types -----------------
 type PaymentMethod = "GCash" | "Cash";
-type AdjustMethod = "add" | "subtract";
 
 interface TopUpLog {
   id: string;
   method: PaymentMethod;
   amount: number;
   date: string;
+  type: string; // "manual" or "request"
 }
 
 interface CustomerWallet {
@@ -37,8 +37,28 @@ const WalletSystem: React.FC = () => {
   const [customer, setCustomer] = useState<CustomerWallet | null>(null);
 
   const [adjustAmount, setAdjustAmount] = useState<number>(0);
-  const [adjustMethod, setAdjustMethod] = useState<AdjustMethod>("add");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("GCash");
+
+  const [walletRequests, setWalletRequests] = useState<any[]>([]);
+
+  // 🔄 Modal States
+  const [showModal, setShowModal] = useState(false);
+  const [modalAmount, setModalAmount] = useState<number>(0);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+
+  // 🔄 Load all wallet requests (pending only)
+  useEffect(() => {
+    const q = query(
+      collection(db, "walletRequests"),
+      where("status", "==", "pending")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setWalletRequests(
+        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      );
+    });
+    return () => unsubscribe();
+  }, []);
 
   // 🔍 Search customer by mobile number
   const handleSearch = async () => {
@@ -71,7 +91,7 @@ const WalletSystem: React.FC = () => {
     });
   };
 
-  // ⚡ Adjust Wallet
+  // ⚡ Manual Wallet Adjustment
   const handleAdjustment = async () => {
     if (!customer) {
       alert("Search a customer first");
@@ -82,39 +102,103 @@ const WalletSystem: React.FC = () => {
       return;
     }
 
-    const newBalance =
-      adjustMethod === "add"
-        ? customer.balance + adjustAmount
-        : customer.balance - adjustAmount;
-
-    if (newBalance < 0) {
-      alert("⚠️ Insufficient balance");
-      return;
-    }
+    const newBalance = customer.balance + adjustAmount;
 
     const newLog: TopUpLog = {
       id: uuidv4(),
       method: paymentMethod,
       amount: adjustAmount,
       date: new Date().toISOString().split("T")[0],
+      type: "manual",
     };
 
     // update Firestore
     const custRef = doc(db, "customers", customer.id);
     await updateDoc(custRef, {
       wallet: newBalance,
-      logs: adjustMethod === "add" ? [...customer.logs, newLog] : customer.logs, // subtract doesn’t add log
+      logs: [...customer.logs, newLog],
     });
 
-    // update state
     setCustomer({
       ...customer,
       balance: newBalance,
-      logs: adjustMethod === "add" ? [...customer.logs, newLog] : customer.logs,
+      logs: [...customer.logs, newLog],
     });
 
     setAdjustAmount(0);
     alert("✅ Wallet updated successfully!");
+  };
+
+  // ✅ Open Approve Modal
+  const openApproveModal = (request: any) => {
+    setSelectedRequest(request);
+    setModalAmount(0);
+    setShowModal(true);
+  };
+
+  // ✅ Approve Wallet Request (with modal amount)
+  const confirmApproveRequest = async () => {
+    if (!selectedRequest) return;
+    if (modalAmount <= 0) {
+      alert("Enter valid amount");
+      return;
+    }
+
+    try {
+      const q = query(
+        collection(db, "customers"),
+        where("email", "==", selectedRequest.email)
+      );
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        alert("❌ Customer not found for this request.");
+        return;
+      }
+
+      const custDoc = snapshot.docs[0];
+      const data = custDoc.data();
+
+      const newBalance = (data.wallet || 0) + modalAmount;
+
+      const newLog: TopUpLog = {
+        id: uuidv4(),
+        method: "GCash",
+        amount: modalAmount,
+        date: new Date().toISOString().split("T")[0],
+        type: "request",
+      };
+
+      await updateDoc(doc(db, "customers", custDoc.id), {
+        wallet: newBalance,
+        logs: [...(data.logs || []), newLog],
+      });
+
+      await updateDoc(doc(db, "walletRequests", selectedRequest.id), {
+        status: "approved",
+      });
+
+      setShowModal(false);
+      setSelectedRequest(null);
+      setModalAmount(0);
+      alert("✅ Wallet request approved!");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to approve request.");
+    }
+  };
+
+  // ❌ Reject Wallet Request
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await updateDoc(doc(db, "walletRequests", requestId), {
+        status: "rejected",
+      });
+      alert("❌ Request rejected.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reject request.");
+    }
   };
 
   return (
@@ -122,7 +206,7 @@ const WalletSystem: React.FC = () => {
       <Sidebar />
 
       <div className="wallet-container">
-        <h1 className="wallet-title">💰 Wallet System</h1>
+        <h1 className="wallet-title">💰 Wallet System (Admin)</h1>
 
         {/* 🔍 Search Customer */}
         <div className="section">
@@ -153,20 +237,10 @@ const WalletSystem: React.FC = () => {
               </p>
             </div>
 
-            {/* 🔧 Adjustment */}
+            {/* 🔧 Manual Adjustment */}
             <div className="section">
-              <h2>🔧 Manual Adjustment (Admin)</h2>
+              <h2>🔧 Manual Adjustment</h2>
               <div className="form-group">
-                <select
-                  value={adjustMethod}
-                  onChange={(e) =>
-                    setAdjustMethod(e.target.value as AdjustMethod)
-                  }
-                >
-                  <option value="add">Add Balance</option>
-                  <option value="subtract">Subtract Balance</option>
-                </select>
-
                 <select
                   value={paymentMethod}
                   onChange={(e) =>
@@ -201,6 +275,7 @@ const WalletSystem: React.FC = () => {
                       <th>Method</th>
                       <th>Amount</th>
                       <th>Date</th>
+                      <th>Type</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -212,6 +287,7 @@ const WalletSystem: React.FC = () => {
                           <td>{log.method}</td>
                           <td>₱{log.amount.toFixed(2)}</td>
                           <td>{log.date}</td>
+                          <td>{log.type}</td>
                         </tr>
                       ))}
                   </tbody>
@@ -222,7 +298,65 @@ const WalletSystem: React.FC = () => {
             </div>
           </>
         )}
+
+        {/* 📥 Wallet Requests (Pending) */}
+        <div className="section">
+          <h2>📥 Pending Wallet Requests</h2>
+          {walletRequests.length > 0 ? (
+            <table className="logs-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Reference No.</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {walletRequests.map((req) => (
+                  <tr key={req.id}>
+                    <td>{req.email}</td>
+                    <td>{req.referenceNo}</td>
+                    <td>{req.status}</td>
+                    <td>
+                      <button onClick={() => openApproveModal(req)}>
+                        ✅ Approve
+                      </button>
+                      <button onClick={() => handleRejectRequest(req.id)}>
+                        ❌ Reject
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No pending requests.</p>
+          )}
+        </div>
       </div>
+
+      {/* 🔄 Modal for Approve */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h2>Approve Wallet Request</h2>
+            <p>
+              Enter amount to add for <strong>{selectedRequest?.email}</strong>
+            </p>
+            <input
+              type="number"
+              value={modalAmount}
+              onChange={(e) => setModalAmount(Number(e.target.value))}
+              placeholder="Enter amount"
+            />
+            <div className="modal-actions">
+              <button onClick={confirmApproveRequest}>✅ Confirm</button>
+              <button onClick={() => setShowModal(false)}>❌ Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

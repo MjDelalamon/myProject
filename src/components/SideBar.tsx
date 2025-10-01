@@ -11,7 +11,7 @@ function Sidebar() {
     { to: "/orders", label: "Orders" },
     { to: "/rewards", label: "Rewards" },
     { to: "/menu", label: "Menu" },
-    { to: "/wallet", label: "Wallet" },
+    { to: "/wallet", label: "Wallet Requests" },
     { to: "/feedback", label: "Feedback" },
     { to: "/notifications", label: "Notifications" },
     { to: "/settings", label: "Settings" },
