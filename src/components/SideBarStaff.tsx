@@ -6,9 +6,6 @@ function SidebarStaff() {
       <div className="sidebar">
         <h2 className="sidebar-title">Staff Panel</h2>
         <nav className="sidebar-nav">
-          <Link to="/qr-scanner" className="sidebar-link">
-            Scan QR
-          </Link>
           <Link to="/take-order" className="sidebar-link">
             Take Order
           </Link>

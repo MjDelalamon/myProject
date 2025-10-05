@@ -27,8 +27,9 @@
   padding: 15px;
   border: 1px solid #d9c8b4;
   border-radius: 8px;
-  min-width: 250px;
+  min-width: 300px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden; /* ✅ Prevents content overflow */
 }
 
 .column h3 {
@@ -53,6 +54,7 @@ input:focus, select:focus {
   box-shadow: 0 0 5px rgba(139, 107, 79, 0.4);
 }
 
+/* --- Button styling --- */
 button {
   background: #8b6b4f; /* warm brown */
   color: #fff;
@@ -61,12 +63,14 @@ button {
   cursor: pointer;
   font-weight: bold;
   transition: background 0.3s ease;
+  white-space: nowrap; /* ✅ prevents text wrapping */
 }
 
 button:hover {
   background: #6f543d;
 }
 
+/* --- Customer Info Section --- */
 .customer-info {
   margin-top: 10px;
   background: #fdf7f1;
@@ -80,18 +84,33 @@ button:hover {
   color: #3e2f1c;
 }
 
+/* --- Order Item Layout Fix --- */
 .order-item {
-  display: flex;
-  gap: 5px;
+  display: grid;
+  grid-template-columns: 1fr 80px 100px auto; /* product | qty | price | action */
+  gap: 8px;
   align-items: center;
+  margin-bottom: 8px;
 }
 
 .order-item input {
-  flex: 1;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #c2b09d;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* --- Summary Section --- */
+.summary {
+  margin-top: 15px;
+  border-top: 2px solid #d9c8b4;
+  padding-top: 10px;
 }
 
 .summary p {
-  margin: 4px 0;
+  margin: 5px 0;
   font-weight: bold;
   color: #3e2f1c;
+  text-align: right;
 }
