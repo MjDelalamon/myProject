@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import SidebarStaff from "../components/SideBarStaff";
 import {
@@ -8,10 +8,12 @@ import {
   addDoc,
   updateDoc,
   collection,
+  getDocs,
 } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
-import "../Style/TakeOrder.css"; // ✅ include your CSS
+import "../Style/TakeOrder.css";
 
+// ✅ Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDxosd6yCZCVd2NGLlIiAthRoCfxAEUrdA",
   authDomain: "systemproject-de072.firebaseapp.com",
@@ -25,9 +27,10 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 export default function TakeOrderWithQR() {
-  const [items, setItems] = useState([
-    { id: 1, name: "Cappuccino", price: 120, qty: 1 },
-  ]);
+  const [items, setItems] = useState([{ id: 1, name: "", price: 0, qty: 1 }]);
+  const [menuData, setMenuData] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [customer, setCustomer] = useState<any>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
@@ -36,29 +39,59 @@ export default function TakeOrderWithQR() {
   const total = +subtotal.toFixed(2);
   const points = +(subtotal * 0.01).toFixed(2);
 
+  // 🔹 Fetch menu from Firestore
+  useEffect(() => {
+    const fetchMenu = async () => {
+      const querySnapshot = await getDocs(collection(db, "menu"));
+      const menuList: any[] = [];
+      const catSet = new Set();
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        menuList.push({ id: doc.id, ...data });
+        if (data.category) catSet.add(data.category);
+      });
+
+      setMenuData(menuList);
+      setCategories(Array.from(catSet));
+    };
+    fetchMenu();
+  }, []);
+
   // 🔹 Add / Update / Remove Items
   const addItem = () => {
     const nextId = items.length ? items[items.length - 1].id + 1 : 1;
-    setItems([...items, { id: nextId, name: "New Item", price: 50, qty: 1 }]);
+    setItems([...items, { id: nextId, name: "", price: 0, qty: 1 }]);
   };
-  const updateItem = (id: number, key: string, value: any) =>
+
+  const updateItem = (id: number, key: string, value: any) => {
     setItems(items.map((it) => (it.id === id ? { ...it, [key]: value } : it)));
-  const removeItem = (id: number) =>
+  };
+
+  const removeItem = (id: number) => {
     setItems(items.filter((it) => it.id !== id));
+  };
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCategory(e.target.value);
+  };
 
   // 🔹 QR Scanner
   const startScanner = () => {
     setShowScanner(true);
+
     const scanner = new Html5QrcodeScanner(
       "reader",
       { fps: 10, qrbox: { width: 250, height: 250 } },
       false
     );
+
     scanner.render(
       async (decodedText) => {
         try {
           const ref = doc(db, "customers", decodedText);
           const snap = await getDoc(ref);
+
           if (snap.exists()) {
             setCustomer({ id: decodedText, ...snap.data() });
             alert("✅ Customer found and linked!");
@@ -68,6 +101,7 @@ export default function TakeOrderWithQR() {
         } catch (err) {
           console.error("Error fetching customer:", err);
         }
+
         scanner.clear().catch(() => {});
         setShowScanner(false);
       },
@@ -101,7 +135,7 @@ export default function TakeOrderWithQR() {
     }
 
     setOrders([order, ...orders]);
-    setItems([{ id: 1, name: "Cappuccino", price: 120, qty: 1 }]);
+    setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
     setCustomer(null);
   };
 
@@ -112,16 +146,50 @@ export default function TakeOrderWithQR() {
         <h2>Take Order</h2>
 
         <div className="columns">
-          {/* 🔹 Left Column: Items */}
+          {/* 🔹 Left Column */}
           <div className="column">
             <h3>Order Items</h3>
+
+            {/* 🔸 Category Dropdown */}
+            <label>Category:</label>
+            <select value={selectedCategory} onChange={handleCategoryChange}>
+              <option value=""> Select Category </option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+
+            {/* 🔸 Items Dropdown */}
             {items.map((it) => (
               <div key={it.id} className="order-item">
-                <input
+                <select
                   value={it.name}
-                  onChange={(e) => updateItem(it.id, "name", e.target.value)}
-                  placeholder="Item name"
-                />
+                  onChange={(e) => {
+                    const selectedItem = menuData.find(
+                      (m) => m.name === e.target.value
+                    );
+                    if (selectedItem) {
+                      updateItem(it.id, "name", selectedItem.name);
+                      updateItem(it.id, "price", selectedItem.price);
+                    }
+                  }}
+                >
+                  <option value=""> Select Item </option>
+                  {menuData
+                    .filter((m) => m.category === selectedCategory)
+                    .map((m) => (
+                      <option
+                        key={m.id}
+                        value={m.name}
+                        disabled={!m.availability} // 🚫 disable if unavailable
+                      >
+                        {m.name} {m.availability ? "" : "(Unavailable)"}
+                      </option>
+                    ))}
+                </select>
+
                 <input
                   type="number"
                   value={it.qty}
@@ -131,12 +199,13 @@ export default function TakeOrderWithQR() {
                 <input
                   type="number"
                   value={it.price}
-                  onChange={(e) => updateItem(it.id, "price", +e.target.value)}
+                  readOnly
                   placeholder="Price"
                 />
                 <button onClick={() => removeItem(it.id)}>✖</button>
               </div>
             ))}
+
             <button onClick={addItem}>+ Add Item</button>
 
             <div className="summary">
@@ -146,7 +215,7 @@ export default function TakeOrderWithQR() {
             </div>
           </div>
 
-          {/* 🔹 Right Column: Customer & QR */}
+          {/* 🔹 Right Column */}
           <div className="column">
             <h3>Customer Info</h3>
 
