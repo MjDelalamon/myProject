@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from "react";
+import { Html5QrcodeScanner } from "html5-qrcode";
 import Sidebar from "../components/SideBar";
 import {
   collection,
   getDocs,
   updateDoc,
+  deleteDoc,
   doc,
+  getDoc,
   serverTimestamp,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../Firebase/firebaseConfig";
 
-// Define the shape of an order
 type Order = {
   id: string;
   customerEmail: string;
@@ -21,139 +25,184 @@ type Order = {
 };
 
 const Orders: React.FC = () => {
-  const [search, setSearch] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
+  const [showScanner, setShowScanner] = useState(false);
+  const [filteredCustomer, setFilteredCustomer] = useState<string | null>(null);
 
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [updateMode, setUpdateMode] = useState<boolean>(false);
-  const [newStatus, setNewStatus] = useState<Order["status"]>("Pending");
-
-  // 🔹 Fetch orders from Firestore
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "orders"));
-        const fetchedOrders: Order[] = [];
-
-        querySnapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          fetchedOrders.push({
-            id: docSnap.id,
-            customerEmail: data.customerEmail,
-            date: data.date?.toDate().toISOString().split("T")[0] || "", // format date
-            amount: data.amount,
-            status: data.status,
-            item: data.item,
-            paymentMethod: data.paymentMethod,
-          });
-        });
-
-        setOrders(fetchedOrders);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
+  const fetchOrders = async (filterEmail: string | null = null) => {
+    try {
+      setLoading(true);
+      let querySnapshot;
+      if (filterEmail) {
+        const q = query(
+          collection(db, "orders"),
+          where("customerEmail", "==", filterEmail)
+        );
+        querySnapshot = await getDocs(q);
+      } else {
+        querySnapshot = await getDocs(collection(db, "orders"));
       }
-    };
 
+      const fetchedOrders: Order[] = querySnapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
+        const dateValue = data.date;
+        let formattedDate = "";
+
+        if (dateValue?.toDate) {
+          formattedDate = dateValue.toDate().toISOString().split("T")[0];
+        } else if (typeof dateValue === "string") {
+          formattedDate = dateValue;
+        }
+
+        return {
+          id: docSnap.id,
+          customerEmail: data.customerEmail || "N/A",
+          date: formattedDate,
+          amount: data.amount || 0,
+          status: data.status || "Pending",
+          item: data.item || "N/A",
+          paymentMethod: data.paymentMethod || "N/A",
+        };
+      });
+      setOrders(fetchedOrders);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchOrders();
   }, []);
 
-  // 🔎 Filters
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch = order.customerEmail
-      .toLowerCase()
-      .includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "" || order.status === statusFilter;
-    const matchesStartDate =
-      startDate === "" || new Date(order.date) >= new Date(startDate);
-    const matchesEndDate =
-      endDate === "" || new Date(order.date) <= new Date(endDate);
-    return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate;
-  });
+  // ✅ COMPLETE button (with points deduction)
+  const handleComplete = async (order: Order) => {
+    try {
+      const customerRef = doc(db, "customers", order.customerEmail);
+      const customerSnap = await getDoc(customerRef);
 
-  const handleView = (order: Order) => {
-    setSelectedOrder(order);
-    setUpdateMode(false);
-    setShowModal(true);
-  };
+      if (!customerSnap.exists()) {
+        alert("Customer record not found.");
+        return;
+      }
 
-  const handleUpdateClick = (order: Order) => {
-    setSelectedOrder(order);
-    setNewStatus(order.status);
-    setUpdateMode(true);
-    setShowModal(true);
-  };
+      const customerData = customerSnap.data();
+      const points = customerData.points || 0;
+      const pointsToDeduct = order.amount; // Deduct based on order amount
 
-  // 🔹 Update Firestore order status
-  const handleStatusUpdate = async () => {
-    if (selectedOrder) {
-      try {
-        const orderRef = doc(db, "orders", selectedOrder.id);
-        await updateDoc(orderRef, {
-          status: newStatus,
-          updatedAt: serverTimestamp(),
-        });
-
-        setOrders((prevOrders) =>
-          prevOrders.map((order) =>
-            order.id === selectedOrder.id
-              ? { ...order, status: newStatus }
-              : order
-          )
+      if (points < pointsToDeduct) {
+        alert(
+          `❌ Insufficient points. You need ${pointsToDeduct} points but only have ${points}.`
         );
-      } catch (err) {
-        console.error("Error updating order:", err);
+        return;
+      }
+
+      await updateDoc(customerRef, {
+        points: points - pointsToDeduct,
+      });
+
+      await updateDoc(doc(db, "orders", order.id), {
+        status: "Completed",
+        updatedAt: serverTimestamp(),
+      });
+
+      alert(
+        `✅ Order marked as completed!\n-${pointsToDeduct} points deducted.`
+      );
+      fetchOrders(filteredCustomer);
+    } catch (error) {
+      console.error("Error completing order:", error);
+      alert("Failed to complete order.");
+    }
+  };
+
+  // 🗑️ DELETE button
+  const handleDelete = async (orderId: string) => {
+    if (confirm("Are you sure you want to delete this order?")) {
+      try {
+        await deleteDoc(doc(db, "orders", orderId));
+        alert("🗑️ Order deleted successfully!");
+        fetchOrders(filteredCustomer);
+      } catch (error) {
+        console.error("Error deleting order:", error);
+        alert("Failed to delete order.");
       }
     }
-    setShowModal(false);
+  };
+
+  // 📷 QR Scanner (for filtering)
+  const startScanner = () => {
+    setShowScanner(true);
+
+    const scanner = new Html5QrcodeScanner(
+      "reader",
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      false
+    );
+
+    scanner.render(
+      async (decodedText) => {
+        try {
+          const ref = doc(db, "customers", decodedText);
+          const snap = await getDoc(ref);
+
+          if (snap.exists()) {
+            setFilteredCustomer(decodedText);
+            alert(`✅ Showing orders for: ${snap.data().fullName}`);
+            fetchOrders(decodedText);
+          } else {
+            alert("❌ Customer not found!");
+          }
+        } catch (err) {
+          console.error("Error scanning QR:", err);
+        }
+
+        scanner.clear().catch(() => {});
+        setShowScanner(false);
+      },
+      (err) => console.warn(err)
+    );
   };
 
   return (
     <>
       <Sidebar />
-
       <div className="orders-container">
         <h2 className="orders-title">📦 Orders & Transactions</h2>
 
-        {/* 🔎 Filters */}
-        <div className="filters">
-          <input
-            type="text"
-            placeholder="Search customer..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Completed">Completed</option>
-            <option value="Canceled">Canceled</option>
-          </select>
+        {/* 🔹 QR Filter Controls */}
+        <div style={{ marginBottom: "15px" }}>
+          <button onClick={startScanner}>📷 Scan QR to Filter Orders</button>
+          {filteredCustomer && (
+            <button
+              style={{ marginLeft: "10px" }}
+              onClick={() => {
+                setFilteredCustomer(null);
+                fetchOrders();
+              }}
+            >
+              🔁 Show All Orders
+            </button>
+          )}
+          {showScanner && (
+            <div
+              id="reader"
+              style={{
+                width: 300,
+                height: 300,
+                marginTop: 10,
+                border: "2px solid #ccc",
+              }}
+            />
+          )}
         </div>
 
-        {/* 📋 Orders Table */}
         {loading ? (
           <p>Loading orders...</p>
+        ) : orders.length === 0 ? (
+          <p>No orders found.</p>
         ) : (
           <table className="orders-table">
             <thead>
@@ -161,31 +210,47 @@ const Orders: React.FC = () => {
                 <th>Order ID</th>
                 <th>Customer</th>
                 <th>Date</th>
+                <th>Item</th>
                 <th>Amount</th>
+                <th>Payment</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => (
+              {orders.map((order) => (
                 <tr key={order.id}>
                   <td>{order.id}</td>
                   <td>{order.customerEmail}</td>
                   <td>{order.date}</td>
+                  <td>{order.item}</td>
                   <td>₱{order.amount}</td>
-                  <td>{order.status}</td>
+                  <td>{order.paymentMethod}</td>
+                  <td
+                    className={`status ${
+                      order.status === "Completed"
+                        ? "completed"
+                        : order.status === "Canceled"
+                        ? "canceled"
+                        : "pending"
+                    }`}
+                  >
+                    {order.status}
+                  </td>
                   <td>
+                    {order.status !== "Completed" && (
+                      <button
+                        className="btn complete"
+                        onClick={() => handleComplete(order)}
+                      >
+                        ✅ Complete
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleView(order)}
-                      className="btn view"
+                      className="btn delete"
+                      onClick={() => handleDelete(order.id)}
                     >
-                      View
-                    </button>
-                    <button
-                      onClick={() => handleUpdateClick(order)}
-                      className="btn update"
-                    >
-                      Update
+                      🗑️ Delete
                     </button>
                   </td>
                 </tr>
@@ -194,58 +259,6 @@ const Orders: React.FC = () => {
           </table>
         )}
       </div>
-
-      {/* 🔹 Modal */}
-      {showModal && selectedOrder && (
-        <div className="modal">
-          <div className="modal-content">
-            <h3>{updateMode ? "Update Order Status" : "Order Details"}</h3>
-            <p>
-              <strong>Order ID:</strong> {selectedOrder.id}
-            </p>
-            <p>
-              <strong>Customer:</strong> {selectedOrder.customerEmail}
-            </p>
-            <p>
-              <strong>Date:</strong> {selectedOrder.date}
-            </p>
-            <p>
-              <strong>Amount:</strong> ₱{selectedOrder.amount}
-            </p>
-            <p>
-              <strong>Item:</strong> {selectedOrder.item}
-            </p>
-            <p>
-              <strong>Payment Method:</strong> {selectedOrder.paymentMethod}
-            </p>
-            {updateMode ? (
-              <>
-                <label>Status:</label>
-                <select
-                  value={newStatus}
-                  onChange={(e) =>
-                    setNewStatus(e.target.value as Order["status"])
-                  }
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Canceled">Canceled</option>
-                </select>
-                <button className="btn confirm" onClick={handleStatusUpdate}>
-                  Confirm Update
-                </button>
-              </>
-            ) : (
-              <p>
-                <strong>Status:</strong> {selectedOrder.status}
-              </p>
-            )}
-            <button className="btn close" onClick={() => setShowModal(false)}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 };
