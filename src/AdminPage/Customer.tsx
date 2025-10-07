@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { addCustomerToFirestore } from "../Firebase/customerService";
 import { db } from "../Firebase/firebaseConfig";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore"; // <-- add deleteDoc, doc
 import Sidebar from "../components/SideBar";
 
 interface CustomerType {
@@ -67,18 +67,12 @@ function Customer() {
     setNewCustomer({ name: "", email: "", mobile: "", wallet: 0 });
   };
 
-  // 🚫 Suspend/Activate customer
-  const handleSuspend = (id: string) => {
-    setCustomers((prev) =>
-      prev.map((cust) =>
-        cust.id === id
-          ? {
-              ...cust,
-              status: cust.status === "Active" ? "Inactive" : "Active",
-            }
-          : cust
-      )
-    );
+  // 🗑️ Delete customer
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this customer?")) {
+      await deleteDoc(doc(db, "customers", id));
+      setCustomers((prev) => prev.filter((cust) => cust.id !== id));
+    }
   };
 
   // ✅ Filtered customers list
@@ -167,14 +161,9 @@ function Customer() {
                   </button>
                   <button
                     className="btn danger"
-                    style={
-                      customer.status === "Inactive"
-                        ? { backgroundColor: "#5cb85c" }
-                        : {}
-                    }
-                    onClick={() => handleSuspend(customer.id)}
+                    onClick={() => handleDelete(customer.id)}
                   >
-                    {customer.status === "Active" ? "Suspend" : "Activate"}
+                    Delete
                   </button>
                 </td>
               </tr>

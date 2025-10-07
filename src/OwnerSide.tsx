@@ -23,6 +23,10 @@ function Owner() {
   }, []);
 
   const handleLogin = () => {
+    if (!password.trim()) {
+      setError("❌ Please enter your PIN.");
+      return;
+    }
     if (password === adminPin) {
       setIsLoggedIn(true);
       navigate("/Dashboard", { replace: true });
