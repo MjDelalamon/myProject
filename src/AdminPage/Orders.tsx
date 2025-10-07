@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   query,
   where,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "../Firebase/firebaseConfig";
 
@@ -84,33 +85,56 @@ const Orders: React.FC = () => {
       const customerSnap = await getDoc(customerRef);
 
       if (!customerSnap.exists()) {
-        alert("Customer record not found.");
+        alert("❌ Customer record not found.");
         return;
       }
 
       const customerData = customerSnap.data();
       const points = customerData.points || 0;
-      const pointsToDeduct = order.amount; // Deduct based on order amount
+      const pointsToDeduct = order.amount; // points equivalent to order amount
 
       if (points < pointsToDeduct) {
         alert(
-          `❌ Insufficient points. You need ${pointsToDeduct} points but only have ${points}.`
+          `❌ Insufficient points. You need ${pointsToDeduct} but only have ${points}.`
         );
         return;
       }
 
+      // 🔹 Deduct points from customer
       await updateDoc(customerRef, {
         points: points - pointsToDeduct,
       });
 
+      // 🔹 Mark order as completed
       await updateDoc(doc(db, "orders", order.id), {
         status: "Completed",
         updatedAt: serverTimestamp(),
       });
 
-      alert(
-        `✅ Order marked as completed!\n-${pointsToDeduct} points deducted.`
+      // 🔹 Transaction details to reuse
+      const transactionData = {
+        customerEmail: order.customerEmail,
+        orderId: order.id,
+        item: order.item,
+        amount: order.amount,
+        paymentMethod: order.paymentMethod,
+        status: "Completed",
+        date: serverTimestamp(),
+      };
+
+      // ✅ 1. Save to global "transactions" collection
+      await addDoc(collection(db, "transactions"), transactionData);
+
+      // ✅ 2. Save to customer's subcollection "transactions"
+      await addDoc(
+        collection(db, "customers", order.customerEmail, "transactions"),
+        transactionData
       );
+
+      alert(
+        `✅ Order marked as completed!\n-${pointsToDeduct} points deducted.\nTransactions saved globally and under the customer.`
+      );
+
       fetchOrders(filteredCustomer);
     } catch (error) {
       console.error("Error completing order:", error);

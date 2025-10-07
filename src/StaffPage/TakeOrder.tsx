@@ -10,8 +10,10 @@ import {
   collection,
   getDocs,
   arrayUnion,
+  Timestamp,
 } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
+import { collection as fbCollection } from "firebase/firestore";
 import "../Style/TakeOrder.css";
 
 // ✅ Firebase Config
@@ -157,6 +159,42 @@ export default function TakeOrderWithQR() {
   const placeOrder = async () => {
     if (items.length === 0) return alert("Add at least one item.");
 
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timestamp = Timestamp.fromDate(now);
+    const transactionId = `ORD-${Date.now()}`;
+
+    // Helper to add to global transactions collection with items as subcollection
+    const addGlobalTransaction = async ({
+      customerEmail,
+      orderId,
+      amount,
+      paymentMethod,
+      type,
+      status,
+      date,
+      items,
+    }: any) => {
+      // Create the main transaction document
+      const transRef = await addDoc(collection(db, "transactions"), {
+        customerEmail,
+        orderId,
+        amount,
+        paymentMethod,
+        type,
+        status,
+        date,
+      });
+      // Add each item as a subcollection document under this transaction
+      for (const item of items) {
+        await addDoc(fbCollection(db, "transactions", transRef.id, "items"), {
+          name: item.name,
+          qty: item.qty,
+          price: item.price,
+        });
+      }
+    };
+
     if (walletCustomer) {
       if (walletCustomer.wallet < total) {
         alert(
@@ -164,26 +202,55 @@ export default function TakeOrderWithQR() {
         );
         return;
       }
-      // Deduct from wallet and add points, and add log
       const ref = doc(db, "customers", walletCustomer.id);
       const newWallet = +(walletCustomer.wallet - total).toFixed(2);
       const newPoints = (walletCustomer.points || 0) + points;
       const logEntry = {
+        transactionId,
         amount: total,
-        date: new Date().toISOString().slice(0, 10),
-        id: `order-${Date.now()}`,
-        method: "Wallet",
-        type: "purchase",
+        date: dateStr,
+        earnedPoints: points,
         items: items.map((it: any) => ({
           name: it.name,
           qty: it.qty,
           price: it.price,
         })),
+        type: "wallet",
+        method: "Wallet",
+        status: "Completed",
+        paymentMethod: "Wallet",
       };
       await updateDoc(ref, {
         wallet: newWallet,
         points: +newPoints.toFixed(2),
-        logs: arrayUnion(logEntry),
+      });
+      // Store in subcollection
+      await addDoc(
+        fbCollection(db, "customers", walletCustomer.id, "transactions"),
+        {
+          orderId: transactionId,
+          amount: total,
+          paymentMethod: "Wallet",
+          type: "wallet",
+          status: "Completed",
+          date: timestamp,
+          items: items.map((it: any) => ({
+            name: it.name,
+            qty: it.qty,
+            price: it.price,
+          })),
+        }
+      );
+      // Store in global transactions collection (with items subcollection)
+      await addGlobalTransaction({
+        customerEmail: walletCustomer.id,
+        orderId: transactionId,
+        amount: total,
+        paymentMethod: "Wallet",
+        type: "wallet",
+        status: "Completed",
+        date: timestamp,
+        items,
       });
       alert(
         `✅ Order placed! ₱${total} deducted from wallet. ${points} points added to ${walletCustomer.fullName}.`
@@ -197,18 +264,62 @@ export default function TakeOrderWithQR() {
           : [logEntry],
       });
     } else if (customer) {
-      // If only customer is present, use points as discount
       const pointsBalance = customer.points || 0;
       const pointsToUse = Math.min(pointsBalance, total);
       const remainingToPay = +(total - pointsToUse).toFixed(2);
       const ref = doc(db, "customers", customer.id);
-      // Only award new points if customer paid something (remainingToPay > 0)
       const newPoints =
         remainingToPay > 0
           ? +(pointsBalance - pointsToUse + points).toFixed(2)
           : +(pointsBalance - pointsToUse).toFixed(2);
 
-      await updateDoc(ref, { points: newPoints });
+      const logEntry = {
+        transactionId,
+        amount: pointsToUse,
+        date: dateStr,
+        earnedPoints: remainingToPay > 0 ? points : 0,
+        items: items.map((it: any) => ({
+          name: it.name,
+          qty: it.qty,
+          price: it.price,
+        })),
+        type: "points-used",
+        method: "Points",
+        status: "Completed",
+        paymentMethod: "Points",
+        note: `Used ${pointsToUse} points as discount for order.`,
+      };
+
+      await updateDoc(ref, {
+        points: newPoints,
+      });
+
+      // Store in subcollection
+      await addDoc(fbCollection(db, "customers", customer.id, "transactions"), {
+        orderId: transactionId,
+        amount: pointsToUse,
+        paymentMethod: "Points",
+        type: "points-used",
+        status: "Completed",
+        date: timestamp,
+        items: items.map((it: any) => ({
+          name: it.name,
+          qty: it.qty,
+          price: it.price,
+        })),
+      });
+      // Store in global transactions collection (with items subcollection)
+      await addGlobalTransaction({
+        customerEmail: customer.id,
+        orderId: transactionId,
+        amount: pointsToUse,
+        paymentMethod: "Points",
+        type: "points-used",
+        status: "Completed",
+        date: timestamp,
+        items,
+      });
+
       alert(
         `✅ Order placed! Used ${pointsToUse} points as discount. Remaining to pay: ₱${remainingToPay}. ${
           remainingToPay > 0
@@ -221,7 +332,7 @@ export default function TakeOrderWithQR() {
     }
 
     const order = {
-      id: `ORD-${Date.now()}`,
+      id: transactionId,
       items,
       subtotal,
       total,
@@ -231,7 +342,7 @@ export default function TakeOrderWithQR() {
         : customer
         ? customer.id
         : "WALK-IN",
-      placedAt: new Date().toISOString(),
+      placedAt: now.toISOString(),
       paidByWallet: !!walletCustomer,
     };
 
