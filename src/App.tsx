@@ -6,7 +6,7 @@ import Owner from "./OwnerSide";
 import Dashboard from "./AdminPage/Dashboard";
 import Customer from "./AdminPage/Customer";
 import Orders from "./AdminPage/Orders";
-import Rewards from "./AdminPage/Reward";
+import Promotion from "./AdminPage/Promotion";
 import Menu from "./AdminPage/Menu";
 import WalletSystem from "./AdminPage/Wallet";
 import SidebarStaff from "./components/SideBarStaff";
@@ -37,7 +37,7 @@ function App() {
       <Route path="/customers" element={<Customer />} />
       <Route path="/orders" element={<Orders />} />
 
-      <Route path="/rewards" element={<Rewards />} />
+      <Route path="/rewards" element={<Promotion />} />
       <Route path="/menu" element={<Menu />} />
       <Route path="/wallet" element={<WalletSystem />} />
       <Route path="/take-order" element={<TakeOrder />} />
