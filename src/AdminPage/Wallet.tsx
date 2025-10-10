@@ -109,7 +109,7 @@ const WalletSystem: React.FC = () => {
       method: paymentMethod,
       amount: adjustAmount,
       date: new Date().toISOString().split("T")[0],
-      type: "manual",
+      type: "Over The Counter",
     };
 
     // update Firestore
