@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import SidebarStaff from "../components/SideBarStaff";
+import { updateCustomerStats } from "../functions/updateCustomerStats.ts";
 import {
   getFirestore,
   doc,
@@ -9,7 +10,6 @@ import {
   updateDoc,
   collection,
   getDocs,
-  arrayUnion,
   Timestamp,
 } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
@@ -29,20 +29,68 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ✅ Interfaces
+interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  availability?: boolean;
+}
+
+interface OrderItem {
+  id: number;
+  name: string;
+  price: number;
+  qty: number;
+}
+
+interface Customer {
+  id: string;
+  fullName: string;
+  mobile?: string;
+  points?: number;
+  wallet?: number;
+  logs?: any[];
+}
+
+interface Order {
+  id: string;
+  items: OrderItem[];
+  subtotal: number;
+  total: number;
+  pointsEarned: number;
+  customerId: string;
+  placedAt: string;
+  paidByWallet: boolean;
+}
+
+interface GlobalTransactionInput {
+  customerEmail: string;
+  orderId: string;
+  amount: number;
+  paymentMethod: string;
+  type: string;
+  status: string;
+  date: Timestamp;
+  items: OrderItem[];
+}
+
 export default function TakeOrderWithQR() {
-  const [items, setItems] = useState<any>([
+  const [items, setItems] = useState<OrderItem[]>([
     { id: 1, name: "", price: 0, qty: 1 },
   ]);
-  const [menuData, setMenuData] = useState<any[]>([]);
+  const [menuData, setMenuData] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [customer, setCustomer] = useState<any>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [showScanner, setShowScanner] = useState(false);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [walletScanResult, setWalletScanResult] = useState<string | null>(null);
-  const [walletCustomer, setWalletCustomer] = useState<any>(null);
+  const [walletCustomer, setWalletCustomer] = useState<Customer | null>(null);
   const [showWalletScanner, setShowWalletScanner] = useState(false);
 
+  // 🔹 Start Wallet QR Scanner
   const startWalletScanner = () => {
     setShowWalletScanner(true);
     const scanner = new Html5QrcodeScanner(
@@ -52,26 +100,28 @@ export default function TakeOrderWithQR() {
     );
 
     scanner.render(
-      async (decodedText) => {
+      async (decodedText: string) => {
         setWalletScanResult(decodedText);
         try {
           const ref = doc(db, "customers", decodedText);
           const snap = await getDoc(ref);
           if (snap.exists()) {
-            setWalletCustomer({ id: decodedText, ...snap.data() });
+            const data = snap.data() as Omit<Customer, "id">;
+            setWalletCustomer({ id: decodedText, ...data });
           } else {
             setWalletCustomer(null);
           }
         } catch {
           setWalletCustomer(null);
         }
-        scanner.clear().catch(() => {});
+        await scanner.clear().catch(() => {});
         setShowWalletScanner(false);
       },
-      (err) => console.warn(err)
+      (err: string) => console.warn(err)
     );
   };
 
+  // 🔹 Computations
   const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
   const total = +subtotal.toFixed(2);
   const points = +(subtotal * 0.05).toFixed(2);
@@ -80,12 +130,11 @@ export default function TakeOrderWithQR() {
   useEffect(() => {
     const fetchMenu = async () => {
       const querySnapshot = await getDocs(collection(db, "menu"));
-      const menuList: any[] = [];
-      const catSet = new Set();
+      const menuList: MenuItem[] = [];
+      const catSet = new Set<string>();
 
       querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        // Convert price to number
+        const data = docSnap.data() as MenuItem;
         const cleanPrice = Number(data.price) || 0;
         menuList.push({ id: docSnap.id, ...data, price: cleanPrice });
         if (data.category) catSet.add(data.category.trim());
@@ -99,26 +148,19 @@ export default function TakeOrderWithQR() {
 
   // 🔹 Add / Update / Remove Items
   const addItem = () => {
-    console.log("🟢 [AddItem] Button clicked!");
-
     const nextId = items.length ? items[items.length - 1].id + 1 : 1;
-    console.log("📦 Next ID to be added:", nextId);
-
-    const newItem = { id: nextId, name: "", price: 0, qty: 1 };
-    console.log("🧾 Item to add:", newItem);
-
-    const updatedItems = [...items, newItem];
-    console.log("📋 Updated items list:", updatedItems);
-
-    setItems(updatedItems);
+    const newItem: OrderItem = { id: nextId, name: "", price: 0, qty: 1 };
+    setItems((prev) => [...prev, newItem]);
   };
 
-  const updateItem = (id: number, key: string, value: any) => {
-    setItems(items.map((it) => (it.id === id ? { ...it, [key]: value } : it)));
+  const updateItem = (id: number, key: keyof OrderItem, value: unknown) => {
+    setItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, [key]: value } : it))
+    );
   };
 
   const removeItem = (id: number) => {
-    setItems(items.filter((it) => it.id !== id));
+    setItems((prev) => prev.filter((it) => it.id !== id));
   };
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -135,12 +177,13 @@ export default function TakeOrderWithQR() {
     );
 
     scanner.render(
-      async (decodedText) => {
+      async (decodedText: string) => {
         try {
           const ref = doc(db, "customers", decodedText);
           const snap = await getDoc(ref);
           if (snap.exists()) {
-            setCustomer({ id: decodedText, ...snap.data() });
+            const data = snap.data() as Omit<Customer, "id">;
+            setCustomer({ id: decodedText, ...data });
             alert("✅ Customer found and linked!");
           } else {
             alert("❌ Customer not found!");
@@ -148,11 +191,41 @@ export default function TakeOrderWithQR() {
         } catch (err) {
           console.error("Error fetching customer:", err);
         }
-        scanner.clear().catch(() => {});
+        await scanner.clear().catch(() => {});
         setShowScanner(false);
       },
-      (err) => console.warn(err)
+      (err: string) => console.warn(err)
     );
+  };
+
+  // 🔹 Helper to add global transaction
+  const addGlobalTransaction = async (input: GlobalTransactionInput) => {
+    const {
+      customerEmail,
+      orderId,
+      amount,
+      paymentMethod,
+      type,
+      status,
+      date,
+      items,
+    } = input;
+    const transRef = await addDoc(collection(db, "transactions"), {
+      customerEmail,
+      orderId,
+      amount,
+      paymentMethod,
+      type,
+      status,
+      date,
+    });
+    for (const item of items) {
+      await addDoc(fbCollection(db, "transactions", transRef.id, "items"), {
+        name: item.name,
+        qty: item.qty,
+        price: item.price,
+      });
+    }
   };
 
   // 🔹 Place Order
@@ -164,67 +237,35 @@ export default function TakeOrderWithQR() {
     const timestamp = Timestamp.fromDate(now);
     const transactionId = `ORD-${Date.now()}`;
 
-    // Helper to add to global transactions collection with items as subcollection
-    const addGlobalTransaction = async ({
-      customerEmail,
-      orderId,
-      amount,
-      paymentMethod,
-      type,
-      status,
-      date,
-      items,
-    }: any) => {
-      // Create the main transaction document
-      const transRef = await addDoc(collection(db, "transactions"), {
-        customerEmail,
-        orderId,
-        amount,
-        paymentMethod,
-        type,
-        status,
-        date,
-      });
-      // Add each item as a subcollection document under this transaction
-      for (const item of items) {
-        await addDoc(fbCollection(db, "transactions", transRef.id, "items"), {
-          name: item.name,
-          qty: item.qty,
-          price: item.price,
-        });
-      }
-    };
-
     if (walletCustomer) {
-      if (walletCustomer.wallet < total) {
+      if ((walletCustomer.wallet || 0) < total) {
         alert(
           `❌ Insufficient wallet balance. Available: ₱${walletCustomer.wallet}, Required: ₱${total}`
         );
         return;
       }
+
       const ref = doc(db, "customers", walletCustomer.id);
-      const newWallet = +(walletCustomer.wallet - total).toFixed(2);
+      const newWallet = +(Number(walletCustomer.wallet) - total).toFixed(2);
       const newPoints = (walletCustomer.points || 0) + points;
+
       const logEntry = {
         transactionId,
         amount: total,
         date: dateStr,
         earnedPoints: points,
-        items: items.map((it: any) => ({
-          name: it.name,
-          qty: it.qty,
-          price: it.price,
-        })),
+        items,
         type: "wallet",
         method: "Wallet",
         status: "Completed",
         paymentMethod: "Wallet",
       };
+
       await updateDoc(ref, {
         wallet: newWallet,
         points: +newPoints.toFixed(2),
       });
-      // Store in subcollection
+
       await addDoc(
         fbCollection(db, "customers", walletCustomer.id, "transactions"),
         {
@@ -234,14 +275,10 @@ export default function TakeOrderWithQR() {
           type: "wallet",
           status: "Completed",
           date: timestamp,
-          items: items.map((it: any) => ({
-            name: it.name,
-            qty: it.qty,
-            price: it.price,
-          })),
+          items,
         }
       );
-      // Store in global transactions collection (with items subcollection)
+
       await addGlobalTransaction({
         customerEmail: walletCustomer.id,
         orderId: transactionId,
@@ -252,9 +289,13 @@ export default function TakeOrderWithQR() {
         date: timestamp,
         items,
       });
+
       alert(
         `✅ Order placed! ₱${total} deducted from wallet. ${points} points added to ${walletCustomer.fullName}.`
       );
+
+      await updateCustomerStats(walletCustomer.id);
+
       setWalletCustomer({
         ...walletCustomer,
         wallet: newWallet,
@@ -273,28 +314,8 @@ export default function TakeOrderWithQR() {
           ? +(pointsBalance - pointsToUse + points).toFixed(2)
           : +(pointsBalance - pointsToUse).toFixed(2);
 
-      const logEntry = {
-        transactionId,
-        amount: pointsToUse,
-        date: dateStr,
-        earnedPoints: remainingToPay > 0 ? points : 0,
-        items: items.map((it: any) => ({
-          name: it.name,
-          qty: it.qty,
-          price: it.price,
-        })),
-        type: "points-used",
-        method: "Points",
-        status: "Completed",
-        paymentMethod: "Points",
-        note: `Used ${pointsToUse} points as discount for order.`,
-      };
+      await updateDoc(ref, { points: newPoints });
 
-      await updateDoc(ref, {
-        points: newPoints,
-      });
-
-      // Store in subcollection
       await addDoc(fbCollection(db, "customers", customer.id, "transactions"), {
         orderId: transactionId,
         amount: pointsToUse,
@@ -302,13 +323,9 @@ export default function TakeOrderWithQR() {
         type: "points-used",
         status: "Completed",
         date: timestamp,
-        items: items.map((it: any) => ({
-          name: it.name,
-          qty: it.qty,
-          price: it.price,
-        })),
+        items,
       });
-      // Store in global transactions collection (with items subcollection)
+
       await addGlobalTransaction({
         customerEmail: customer.id,
         orderId: transactionId,
@@ -327,34 +344,32 @@ export default function TakeOrderWithQR() {
             : "No new points awarded."
         }`
       );
+      await updateCustomerStats(customer.id);
     } else {
       alert("✅ Order placed (Walk-in Customer).");
     }
 
-    const order = {
+    const order: Order = {
       id: transactionId,
       items,
       subtotal,
       total,
       pointsEarned: points,
-      customerId: walletCustomer
-        ? walletCustomer.id
-        : customer
-        ? customer.id
-        : "WALK-IN",
+      customerId: walletCustomer?.id || customer?.id || "WALK-IN",
       placedAt: now.toISOString(),
       paidByWallet: !!walletCustomer,
     };
 
     await addDoc(collection(db, "orders"), order);
 
-    setOrders([order, ...orders]);
+    setOrders((prev) => [order, ...prev]);
     setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
     setCustomer(null);
     setWalletScanResult(null);
     setWalletCustomer(null);
   };
 
+  // ✅ UI
   return (
     <>
       <SidebarStaff />
@@ -376,14 +391,12 @@ export default function TakeOrderWithQR() {
               ))}
             </select>
 
-            {/* ITEM SELECTION */}
             {items.map((it) => (
               <div key={it.id} className="order-item">
                 <select
                   value={it.name}
                   onChange={(e) => {
                     const nameInput = e.target.value;
-                    // Find by name and category, but fallback to just name if category is not set
                     const selectedItem = menuData.find(
                       (m) =>
                         m.name === nameInput &&
@@ -396,7 +409,7 @@ export default function TakeOrderWithQR() {
                       updateItem(it.id, "name", selectedItem.name);
                       updateItem(it.id, "price", Number(selectedItem.price));
                     } else {
-                      updateItem(it.id, "name", nameInput); // set to value even if not found
+                      updateItem(it.id, "name", nameInput);
                       updateItem(it.id, "price", 0);
                     }
                   }}
@@ -428,7 +441,9 @@ export default function TakeOrderWithQR() {
                 <input
                   type="number"
                   value={it.qty}
-                  onChange={(e) => updateItem(it.id, "qty", +e.target.value)}
+                  onChange={(e) =>
+                    updateItem(it.id, "qty", Number(e.target.value))
+                  }
                   placeholder="Qty"
                 />
                 <input
@@ -443,18 +458,13 @@ export default function TakeOrderWithQR() {
 
             <button onClick={addItem}>+ Add Item</button>
 
-            {/* ORDER SUMMARY */}
             <div className="order-summary-list" style={{ marginTop: "18px" }}>
               <h4>Current Items:</h4>
               <ul>
                 {items.map((it, idx) => (
                   <li key={it.id || idx}>
-                    {it.name && it.name !== "" ? (
-                      it.name
-                    ) : (
-                      <i>No item selected</i>
-                    )}{" "}
-                    × {it.qty} — ₱{(it.price * it.qty).toFixed(2)}
+                    {it.name || <i>No item selected</i>} × {it.qty} — ₱
+                    {(it.price * it.qty).toFixed(2)}
                   </li>
                 ))}
               </ul>
@@ -490,7 +500,7 @@ export default function TakeOrderWithQR() {
               </div>
             )}
 
-            <button onClick={startWalletScanner} style={{ marginTop: "10px" }}>
+            <button onClick={startWalletScanner} style={{ marginTop: 10 }}>
               📱 Scan QR for Pay Wallet
             </button>
             {showWalletScanner && (
@@ -522,14 +532,14 @@ export default function TakeOrderWithQR() {
               </div>
             )}
 
-            <button onClick={placeOrder} style={{ marginTop: "20px" }}>
+            <button onClick={placeOrder} style={{ marginTop: 20 }}>
               🧾 Place Order
             </button>
           </div>
         </div>
 
         {/* RECENT ORDERS */}
-        <div className="column" style={{ marginTop: "20px" }}>
+        <div className="column" style={{ marginTop: 20 }}>
           <h3>Recent Orders</h3>
           {orders.length === 0 ? (
             <p>No recent orders.</p>

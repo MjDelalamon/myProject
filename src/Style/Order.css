@@ -1,136 +1,99 @@
+/* Container and Title - keep same */
 .orders-container {
   margin-left: 280px;
   padding: 40px 30px;
-  background-color: #f9f6f2; /* light background */
+  background-color: #f9f6f2;
   min-height: 100vh;
-  color: #3b2f2f; /* dark brown text */
+  color: #3b2f2f;
   font-family: "Segoe UI", sans-serif;
 }
 
 .orders-title {
   font-size: 2.3rem;
-  color: #5b3a29; /* deep brown */
-  border-left: 6px solid #d9a976; /* light brown border */
+  color: #5b3a29;
+  border-left: 6px solid #d9a976;
   padding-left: 16px;
   margin-bottom: 30px;
   font-weight: 600;
 }
 
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 25px;
+/* 🔹 Grid Layout for Cards */
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 25px;
 }
 
-.filters input,
-.filters select {
-  padding: 10px 14px;
-  border: 1px solid #c7a27c;
-  border-radius: 8px;
-  background-color: #ffffff; /* white */
-  color: #3b2f2f;
-  font-size: 1rem;
-  transition: 0.2s ease;
+/* 🔹 Individual Card Style */
+.order-card {
+  background-color: #ffffff;
+  border: 1px solid #e0c7a1;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(59, 47, 47, 0.1);
+  padding: 20px 22px;
+  transition: all 0.3s ease;
 }
 
-.filters input::placeholder {
-  color: #999;
+.order-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(91, 58, 41, 0.15);
 }
 
-.filters input:focus,
-.filters select:focus {
-  outline: none;
-  border-color: #b68961;
-  background-color: #f4eee9;
+/* 🔹 Order Details Text */
+.order-card h3 {
+  font-size: 1.1rem;
+  color: #5b3a29;
+  margin-bottom: 10px;
 }
 
-.orders-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: #ffffff; /* light background */
-  border-radius: 12px;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.orders-table th,
-.orders-table td {
-  padding: 16px 18px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.orders-table th {
-  background-color: #f4e9dd;
-  color: #6f4f3c; /* brownish text */
-  text-transform: uppercase;
+.order-card p {
   font-size: 0.95rem;
-}
-
-.orders-table td {
   color: #3b2f2f;
-  font-size: 0.95rem;
+  margin: 5px 0;
 }
 
-.orders-table tr:hover {
-  background-color: #fdf7f2;
-}
-
-.btn {
-  margin: 2px;
-  padding: 8px 12px;
-  background-color: #b6825e;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
+/* 🔹 Status Badge */
+.order-status {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
-.btn:hover {
-  background-color: #9c6b4d;
-  transform: scale(1.05);
+.order-status.completed {
+  background-color: #e4f8e2;
+  color: #2e7d32;
 }
 
-@media (max-width: 768px) {
-  .orders-title {
-    font-size: 1.6rem;
-  }
-
-  .filters {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .orders-table th,
-  .orders-table td {
-    font-size: 0.85rem;
-    padding: 12px;
-  }
+.order-status.pending {
+  background-color: #fff5cc;
+  color: #a17a1d;
 }
 
-.filters {
+.order-status.canceled {
+  background-color: #ffe2e2;
+  color: #c62828;
+}
+
+/* 🔹 Buttons (reuse existing style but refine layout) */
+.card-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  margin-top: 14px;
 }
 
-.filters input,
-.filters select {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-} 
 .complete-btn {
   background-color: #4caf50;
   color: white;
   border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: 0.2s ease;
+  flex: 1;
   margin-right: 6px;
 }
 
@@ -142,13 +105,28 @@
   background-color: #f44336;
   color: white;
   border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
   cursor: pointer;
+  flex: 1;
+  transition: 0.2s ease;
 }
 
 .delete-btn:hover {
   background-color: #d32f2f;
 }
 
+/* 🔹 Responsive */
+@media (max-width: 768px) {
+  .orders-title {
+    font-size: 1.7rem;
+  }
 
+  .orders-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-card {
+    padding: 16px;
+  }
+}

@@ -11,7 +11,6 @@ import Menu from "./AdminPage/Menu";
 import WalletSystem from "./AdminPage/Wallet";
 import SidebarStaff from "./components/SideBarStaff";
 import TakeOrder from "./StaffPage/TakeOrder";
-import QRScanner from "./StaffPage/QrScanner";
 
 import "./Style/Dashboard.css";
 import "./Style/App.css";
@@ -19,7 +18,7 @@ import "./Style/index.css";
 import "./Style/intro.css";
 import "./Style/sideBar.css";
 import "./Style/Customer.css";
-import "./Style/Order.css";
+
 import "./Style/Reward.css";
 import "./Style/Menu.css";
 import "./Style/Wallet.css";
@@ -41,8 +40,7 @@ function App() {
       <Route path="/menu" element={<Menu />} />
       <Route path="/wallet" element={<WalletSystem />} />
       <Route path="/take-order" element={<TakeOrder />} />
-      <Route path="/qr-scanner" element={<QRScanner />} />
-    </Routes>
+      </Routes>
   );
 }
 
