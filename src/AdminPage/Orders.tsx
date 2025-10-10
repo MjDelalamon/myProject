@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import Sidebar from "../components/SideBar";
+import { updateCustomerStats } from "../functions/updateCustomerStats.ts";
 import {
   collection,
   getDocs,
@@ -111,7 +112,6 @@ const Orders: React.FC = () => {
         updatedAt: serverTimestamp(),
       });
 
-      // 🔹 Transaction details to reuse
       const transactionData = {
         customerEmail: order.customerEmail,
         orderId: order.id,
@@ -121,6 +121,24 @@ const Orders: React.FC = () => {
         status: "Completed",
         date: serverTimestamp(),
       };
+
+      // ✅ 1. Save to global "transactions" collection
+      await addDoc(collection(db, "transactions"), transactionData);
+
+      // ✅ 2. Save to customer's subcollection "transactions"
+      await addDoc(
+        collection(db, "customers", order.customerEmail, "transactions"),
+        transactionData
+      );
+
+      // ✅ 3. Update customer stats (favoriteCategory + totalSpent)
+      await updateCustomerStats(order.customerEmail);
+
+      alert(
+        `✅ Order marked as completed!\n-${pointsToDeduct} points deducted.\nTransactions saved and customer stats updated.`
+      );
+
+      fetchOrders(filteredCustomer);
 
       // ✅ 1. Save to global "transactions" collection
       await addDoc(collection(db, "transactions"), transactionData);
