@@ -77,7 +77,8 @@ const Orders: React.FC = () => {
           id: docSnap.id,
           customerEmail: data.customerId || "N/A",
           date: formattedDate,
-          amount: data.total || data.amount || 0,
+          amount: data.subtotal || data.total || data.amount || 0,
+
           status: data.status || "Pending",
           items,
           paymentMethod,
@@ -140,38 +141,60 @@ const Orders: React.FC = () => {
   };
 
   // Complete order: mark Completed and create transaction records + update customer stats
+  // Complete order: mark Completed, deduct points, and create transaction records
   const handleComplete = async (order: Order) => {
     try {
-      // mark order completed
-      await updateDoc(doc(db, "orders", order.id), {
-        status: "Completed",
+      const customerRef = doc(db, "customers", order.customerEmail);
+      const customerSnap = await getDoc(customerRef);
+
+      if (!customerSnap.exists()) {
+        alert("❌ Customer not found.");
+        return;
+      }
+
+      const customerData = customerSnap.data();
+      const currentPoints = customerData.points || 0;
+      const orderCost = order.amount;
+
+      // check if customer has enough points
+      if (currentPoints < orderCost) {
+        alert("⚠️ Not enough points to complete this order!");
+        return;
+      }
+
+      // deduct points from customer
+      await updateDoc(customerRef, {
+        points: currentPoints - orderCost,
         updatedAt: serverTimestamp(),
       });
 
-      // create transactions (use serverTimestamp for date)
+      // mark order completed
+      await updateDoc(doc(db, "orders", order.id), {
+        status: "Completed",
+        paymentMethod: "Points",
+        updatedAt: serverTimestamp(),
+      });
+
+      // create transaction record (global + customer subcollection)
       await createTransactionRecords({
         customerEmail: order.customerEmail,
         orderId: order.id,
         amount: order.amount,
-        paymentMethod: order.paymentMethod,
-        type: order.paymentMethod.toLowerCase().includes("wallet")
-          ? "wallet"
-          : order.paymentMethod.toLowerCase() === "points"
-          ? "points-used"
-          : "cash",
+        paymentMethod: "Points",
+        type: "points-used",
         status: "Completed",
         date: serverTimestamp(),
         items: order.items || [],
       });
 
-      // optional: update customer derived stats
+      // update customer stats (optional for analytics)
       await updateCustomerStats(order.customerEmail);
 
-      alert("✅ Order completed and transactions recorded.");
+      alert("✅ Order completed and points deducted successfully.");
       fetchOrders(filteredCustomer);
     } catch (error) {
       console.error("Error completing order:", error);
-      alert("Failed to complete order.");
+      alert("❌ Failed to complete order.");
     }
   };
 
@@ -198,7 +221,7 @@ const Orders: React.FC = () => {
         const itemsSnap = await getDocs(
           collection(db, "transactions", t.id, "items")
         );
-        for (const it of itemsSnap.docs) {  
+        for (const it of itemsSnap.docs) {
           await deleteDoc(doc(db, "transactions", t.id, "items", it.id));
         }
         await deleteDoc(doc(db, "transactions", t.id));
@@ -268,9 +291,7 @@ const Orders: React.FC = () => {
     <>
       <Sidebar />
       <div className="p-6 ml-64">
-        <h2 className="text-2xl font-semibold mb-4">
-          📦 Orders & Transactions
-        </h2>
+        <h2 className="text-2xl font-semibold mb-4">Redeem Orders</h2>
 
         <div className="flex items-center gap-3 mb-4">
           <button
@@ -323,9 +344,7 @@ const Orders: React.FC = () => {
                 <p>
                   <strong>Amount:</strong> ₱{order.amount}
                 </p>
-                <p>
-                  <strong>Payment:</strong> {order.paymentMethod}
-                </p>
+                <p></p>
                 <span className={`order-status ${order.status.toLowerCase()}`}>
                   {order.status}
                 </span>
