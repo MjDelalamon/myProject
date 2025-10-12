@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import Sidebar from "../components/SideBar";
-import { updateCustomerStats } from "../functions/updateCustomerStats.ts";
+
 import {
   collection,
   getDocs,
