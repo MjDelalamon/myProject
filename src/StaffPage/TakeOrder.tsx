@@ -43,6 +43,7 @@ interface OrderItem {
   name: string;
   price: number;
   qty: number;
+  category?: string;
 }
 
 interface Customer {
@@ -51,6 +52,7 @@ interface Customer {
   mobile?: string;
   points?: number;
   wallet?: number;
+  totalSpent?: number;
   logs?: any[];
 }
 
@@ -224,10 +226,12 @@ export default function TakeOrderWithQR() {
         name: item.name,
         qty: item.qty,
         price: item.price,
+        category: item.category || "Uncategorized",
       });
     }
   };
 
+  // 🔹 Place Order
   // 🔹 Place Order
   const placeOrder = async () => {
     if (items.length === 0) return alert("Add at least one item.");
@@ -237,6 +241,7 @@ export default function TakeOrderWithQR() {
     const timestamp = Timestamp.fromDate(now);
     const transactionId = `ORD-${Date.now()}`;
 
+    // 🏦 If Wallet Customer (same as before)
     if (walletCustomer) {
       if ((walletCustomer.wallet || 0) < total) {
         alert(
@@ -261,9 +266,12 @@ export default function TakeOrderWithQR() {
         paymentMethod: "Wallet",
       };
 
+      const newTotalSpent = (walletCustomer.totalSpent || 0) + total;
+
       await updateDoc(ref, {
         wallet: newWallet,
         points: +newPoints.toFixed(2),
+        totalSpent: +newTotalSpent.toFixed(2),
       });
 
       await addDoc(
@@ -294,6 +302,19 @@ export default function TakeOrderWithQR() {
         `✅ Order placed! ₱${total} deducted from wallet. ${points} points added to ${walletCustomer.fullName}.`
       );
 
+      const order: Order = {
+        id: transactionId,
+        items,
+        subtotal,
+        total,
+        pointsEarned: points,
+        customerId: walletCustomer?.id || customer?.id || "WALK-IN",
+        placedAt: now.toISOString(),
+        paidByWallet: true,
+      };
+
+      setOrders((prev) => [order, ...prev].slice(0, 5));
+
       await updateCustomerStats(walletCustomer.id);
 
       setWalletCustomer({
@@ -304,23 +325,35 @@ export default function TakeOrderWithQR() {
           ? [...walletCustomer.logs, logEntry]
           : [logEntry],
       });
-    } else if (customer) {
-      const pointsBalance = customer.points || 0;
-      const pointsToUse = Math.min(pointsBalance, total);
-      const remainingToPay = +(total - pointsToUse).toFixed(2);
-      const ref = doc(db, "customers", customer.id);
-      const newPoints =
-        remainingToPay > 0
-          ? +(pointsBalance - pointsToUse + points).toFixed(2)
-          : +(pointsBalance - pointsToUse).toFixed(2);
 
-      await updateDoc(ref, { points: newPoints });
+      // 🔚 Reset forms
+      setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
+      setCustomer(null);
+      setWalletScanResult(null);
+      setWalletCustomer(null);
+      return;
+    }
+
+    // 🧾 If Customer scanned via “Scan QR for Points” (Over the Counter)
+    if (customer) {
+      const ref = doc(db, "customers", customer.id);
+      const earnedPoints = +(subtotal * 0.05).toFixed(2);
+      const newPoints = +(Number(customer.points || 0) + earnedPoints).toFixed(
+        2
+      );
+
+      const newTotalSpent = (customer.totalSpent || 0) + total;
+
+      await updateDoc(ref, {
+        points: newPoints,
+        totalSpent: +newTotalSpent.toFixed(2),
+      });
 
       await addDoc(fbCollection(db, "customers", customer.id, "transactions"), {
         orderId: transactionId,
-        amount: pointsToUse,
-        paymentMethod: "Points",
-        type: "points-used",
+        amount: total,
+        paymentMethod: "Over the Counter",
+        type: "points-earned",
         status: "Completed",
         date: timestamp,
         items,
@@ -329,44 +362,44 @@ export default function TakeOrderWithQR() {
       await addGlobalTransaction({
         customerEmail: customer.id,
         orderId: transactionId,
-        amount: pointsToUse,
-        paymentMethod: "Points",
-        type: "points-used",
+        amount: total,
+        paymentMethod: "Over the Counter",
+        type: "points-earned",
         status: "Completed",
         date: timestamp,
         items,
       });
 
       alert(
-        `✅ Order placed! Used ${pointsToUse} points as discount. Remaining to pay: ₱${remainingToPay}. ${
-          remainingToPay > 0
-            ? `New points: ${points}.`
-            : "No new points awarded."
-        }`
+        `✅ Order placed (Over the Counter)! ${earnedPoints} points added to ${customer.fullName}.`
       );
+
       await updateCustomerStats(customer.id);
-    } else {
-      alert("✅ Order placed (Walk-in Customer).");
+
+      const order: Order = {
+        id: transactionId,
+        items,
+        subtotal,
+        total,
+        pointsEarned: earnedPoints,
+        customerId: customer.id,
+        placedAt: now.toISOString(),
+        paidByWallet: false,
+      };
+
+      setOrders((prev) => [order, ...prev].slice(0, 5));
+
+      // 🔚 Reset form
+      setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
+      setCustomer(null);
+      setWalletCustomer(null);
+      setWalletScanResult(null);
+      return;
     }
 
-    const order: Order = {
-      id: transactionId,
-      items,
-      subtotal,
-      total,
-      pointsEarned: points,
-      customerId: walletCustomer?.id || customer?.id || "WALK-IN",
-      placedAt: now.toISOString(),
-      paidByWallet: !!walletCustomer,
-    };
-
-    await addDoc(collection(db, "orders"), order);
-
-    setOrders((prev) => [order, ...prev]);
+    // 🚶 Walk-in Customer
+    alert("✅ Order placed for Walk-in Customer (No points earned).");
     setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
-    setCustomer(null);
-    setWalletScanResult(null);
-    setWalletCustomer(null);
   };
 
   // ✅ UI
@@ -408,9 +441,15 @@ export default function TakeOrderWithQR() {
                     if (selectedItem) {
                       updateItem(it.id, "name", selectedItem.name);
                       updateItem(it.id, "price", Number(selectedItem.price));
+                      updateItem(it.id, "category", selectedItem.category); // ✅ add category
                     } else {
                       updateItem(it.id, "name", nameInput);
                       updateItem(it.id, "price", 0);
+                      updateItem(
+                        it.id,
+                        "category",
+                        selectedCategory || "Uncategorized"
+                      );
                     }
                   }}
                   disabled={!selectedCategory}
@@ -459,11 +498,12 @@ export default function TakeOrderWithQR() {
             <button onClick={addItem}>+ Add Item</button>
 
             <div className="order-summary-list" style={{ marginTop: "18px" }}>
-              <h4>Current Items:</h4>
+              <h3>Current Items:</h3>
               <ul>
                 {items.map((it, idx) => (
                   <li key={it.id || idx}>
-                    {it.name || <i>No item selected</i>} × {it.qty} — ₱
+                    <b>{it.name || <i>No item selected</i>}</b> (
+                    {it.category || "—"}) × {it.qty} — ₱
                     {(it.price * it.qty).toFixed(2)}
                   </li>
                 ))}
