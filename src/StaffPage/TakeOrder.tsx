@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import SidebarStaff from "../components/SideBarStaff";
-import { updateCustomerStats } from "../functions/updateFavoriteCategory.ts.ts";
 import {
   getFirestore,
   doc,

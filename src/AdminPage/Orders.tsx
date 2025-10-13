@@ -99,6 +99,7 @@ const Orders: React.FC = () => {
   }, []);
 
   // new helper: create transaction documents (global & customer subcollection)
+  // new helper: create transaction documents (global & customer subcollection)
   const createTransactionRecords = async ({
     customerEmail,
     orderId,
@@ -109,26 +110,18 @@ const Orders: React.FC = () => {
     date,
     items,
   }: any) => {
-    // create global transaction document (with items as subcollection)
-    const transRef = await addDoc(collection(db, "transactions"), {
-      customerEmail,
+    // create global transaction document
+    await addDoc(collection(db, "transactions"), {
       orderId,
       amount,
       paymentMethod,
       type,
       status,
       date,
+      items, // ← dito na mismo nakasama lahat ng items
     });
-    // items subcollection
-    for (const item of items) {
-      await addDoc(collection(db, "transactions", transRef.id, "items"), {
-        name: item.name,
-        qty: item.qty,
-        price: item.price,
-      });
-    }
 
-    // also write summary doc under customer's transactions subcollection
+    // also create one under customer's transactions subcollection
     await addDoc(collection(db, "customers", customerEmail, "transactions"), {
       orderId,
       amount,
@@ -188,7 +181,6 @@ const Orders: React.FC = () => {
       });
 
       // update customer stats (optional for analytics)
-      await updateCustomerStats(order.customerEmail);
 
       alert("✅ Order completed and points deducted successfully.");
       fetchOrders(filteredCustomer);
@@ -420,6 +412,7 @@ const Orders: React.FC = () => {
                 <thead>
                   <tr>
                     <th style={{ textAlign: "left" }}>Name</th>
+                    <th style={{ textAlign: "left" }}>Category</th>
                     <th style={{ textAlign: "right" }}>Qty</th>
                     <th style={{ textAlign: "right" }}>Price</th>
                     <th style={{ textAlign: "right" }}>Total</th>
@@ -429,6 +422,7 @@ const Orders: React.FC = () => {
                   {selectedOrder.items.map((it, idx) => (
                     <tr key={idx}>
                       <td>{it.name || "N/A"}</td>
+                      <td>{it.category || "N/A"}</td>
                       <td style={{ textAlign: "right" }}>{it.qty}</td>
                       <td style={{ textAlign: "right" }}>
                         ₱{Number(it.price).toFixed(2)}
