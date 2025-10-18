@@ -1,62 +1,91 @@
-/* Container and Title - keep same */
+/* Orders container */
 .orders-container {
-  margin-left: 280px;
-  padding: 40px 30px;
-  background-color: #f9f6f2;
-  min-height: 100vh;
-  color: #3b2f2f;
+  position: absolute;
+  width: 100%;
+  max-width: 1100px;
+  left: 23%;
+  margin: 0 auto;
+  padding: 40px 24px;
   font-family: "Segoe UI", sans-serif;
+  color: #333;
+  min-height: 100vh;
 }
 
 .orders-title {
-  font-size: 2.3rem;
-  color: #5b3a29;
-  border-left: 6px solid #d9a976;
-  padding-left: 16px;
-  margin-bottom: 30px;
+  font-size: 1.75rem;
+  margin-bottom: 24px;
+  color: #333;
+  border-left: 4px solid #888;
+  padding-left: 12px;
   font-weight: 600;
 }
 
-/* 🔹 Grid Layout for Cards */
+/* Orders Grid */
 .orders-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 25px;
+  gap: 20px;
+  perspective: 1000px; /* Needed for 3D flip */
 }
 
-/* 🔹 Individual Card Style */
-.order-card {
-  background-color: #ffffff;
-  border: 1px solid #e0c7a1;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(59, 47, 47, 0.1);
-  padding: 20px 22px;
-  transition: all 0.3s ease;
+/* Flip card wrapper */
+.flip-card {
+  background-color: transparent;
+  width: 100%;
+  min-height: 320px;
+  perspective: 1000px;
 }
 
-.order-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 18px rgba(91, 58, 41, 0.15);
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
 }
 
-/* 🔹 Order Details Text */
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+/* Front and back faces */
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Card front content */
 .order-card h3 {
-  font-size: 1.1rem;
-  color: #5b3a29;
+  font-size: 1.2rem;
   margin-bottom: 10px;
+  color: #333;
 }
 
 .order-card p {
   font-size: 0.95rem;
-  color: #3b2f2f;
-  margin: 5px 0;
+  margin: 4px 0;
+  color: #444;
 }
 
-/* 🔹 Status Badge */
+/* Status badge */
 .order-status {
   display: inline-block;
   margin-top: 10px;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -78,23 +107,29 @@
   color: #c62828;
 }
 
-/* 🔹 Buttons (reuse existing style but refine layout) */
+/* Card actions buttons */
 .card-actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 14px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card-actions button {
+  flex: 1 1 calc(33% - 4px);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .complete-btn {
   background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s ease;
-  flex: 1;
-  margin-right: 6px;
+  color: #fff;
 }
 
 .complete-btn:hover {
@@ -102,31 +137,84 @@
 }
 
 .delete-btn {
-  background-color: #f44336;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  flex: 1;
-  transition: 0.2s ease;
+  background-color: #d9534f;
+  color: #fff;
 }
 
 .delete-btn:hover {
-  background-color: #d32f2f;
+  background-color: #c9302c;
 }
 
-/* 🔹 Responsive */
+.view-btn {
+  background-color: #666;
+  color: #fff;
+}
+
+.view-btn:hover {
+  background-color: #555;
+}
+
+/* Back button */
+.back-btn {
+  background-color: #888;
+  color: #fff;
+}
+
+.back-btn:hover {
+  background-color: #555;
+}
+
+/* Back face table */
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+
+.items-table th,
+.items-table td {
+  padding: 10px 12px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+
+.items-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.items-table td {
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.total {
+  text-align: right;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .orders-title {
-    font-size: 1.7rem;
+    font-size: 1.4rem;
   }
 
   .orders-grid {
     grid-template-columns: 1fr;
   }
 
-  .order-card {
-    padding: 16px;
+  .flip-card-front,
+  .flip-card-back {
+    padding: 14px;
+    min-height: 350px;
+  }
+
+  .items-table th,
+  .items-table td {
+    padding: 8px 10px;
+    font-size: 0.8rem;
   }
 }

@@ -318,144 +318,105 @@ const Orders: React.FC = () => {
           <p>No orders found.</p>
         ) : (
           <div className="orders-grid">
-            {orders.map((order) => (
-              <div key={order.id} className="order-card">
-                <h3>🧾 Order ID: {order.id}</h3>
-                <p>
-                  <strong>Customer:</strong> {order.customerEmail}
-                </p>
-                <p>
-                  <strong>Date:</strong> {order.date}
-                </p>
-                <p>
-                  <strong>Items:</strong>{" "}
-                  {order.items && order.items.length
-                    ? order.items.map((i) => i.name).join(", ")
-                    : "N/A"}
-                </p>
-                <p>
-                  <strong>Amount:</strong> ₱{order.amount}
-                </p>
-                <p></p>
-                <span className={`order-status ${order.status.toLowerCase()}`}>
-                  {order.status}
-                </span>
-                <div className="card-actions">
-                  <button
-                    className="view-btn"
-                    onClick={() => openOrderDetails(order)}
-                  >
-                     View Details
-                  </button>
-                  {order.status !== "Completed" && (
-                    <button
-                      className="complete-btn"
-                      onClick={() => handleComplete(order)}
-                    >
-                      ✅ Complete
-                    </button>
-                  )}
-                  <button
-                    className="delete-btn"
-                    onClick={() => handleDelete(order.id, order.customerEmail)}
-                  >
-                    🗑️ Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+  {orders.map((order) => {
+    const isFlipped = selectedOrder?.id === order.id;
+    return (
+      <div
+        key={order.id}
+        className={`flip-card ${isFlipped ? "flipped" : ""}`}
+      >
+        <div className="flip-card-inner">
+          {/* Front */}
+          <div className="flip-card-front order-card">
+            <div>
+              <h3>🧾 Order ID: {order.id}</h3>
+              
+              <p><strong>Date:</strong> {order.date}</p>
+              <p><strong>Items:</strong>{" "}
+                {order.items && order.items.length
+                  ? order.items.map((i) => i.name).join(", ")
+                  : "N/A"}
+              </p>
+              <p><strong>Amount:</strong> ₱{order.amount}</p>
+              <span className={`order-status ${order.status.toLowerCase()}`}>
+                {order.status}
+              </span>
+            </div>
+            <div className="card-actions">
+              <button
+                className="view-btn"
+                onClick={() => setSelectedOrder(isFlipped ? null : order)}
+              >
+                View Details
+              </button>
+              {order.status !== "Completed" && (
+                <button
+                  className="complete-btn"
+                  onClick={() => handleComplete(order)}
+                >
+                  ✅ Complete
+                </button>
+              )}
+              <button
+                className="delete-btn"
+                onClick={() => handleDelete(order.id, order.customerEmail)}
+              >
+                🗑️ Delete
+              </button>
+            </div>
           </div>
-        )}
 
-        {/* Order Details Modal */}
-        {showOrderModal && selectedOrder && (
-          <div
-            className="modal-overlay"
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 2000,
-            }}
-          >
-            <div
-              className="modal"
-              style={{
-                background: "#fff",
-                padding: 20,
-                borderRadius: 8,
-                width: "90%",
-                maxWidth: 700,
-              }}
-            >
-              <h3>Order Details — {selectedOrder.id}</h3>
-              <p>
-                <strong>Customer:</strong> {selectedOrder.customerEmail}
-              </p>
-              <p>
-                <strong>Date:</strong> {selectedOrder.date}
-              </p>
-              <p>
-                <strong>Payment:</strong> {selectedOrder.paymentMethod}{" "}
-                {selectedOrder.paidByWallet ? "(Wallet)" : ""}
-              </p>
-              <p>
-                <strong>Points Earned:</strong>{" "}
-                {selectedOrder.pointsEarned || 0}
-              </p>
+          {/* Back */}
+          <div className="flip-card-back order-card">
+            <div>
+              <h3>Order Details — {order.id}</h3>
+              <p><strong>Customer:</strong> {order.customerEmail}</p>
+              <p><strong>Payment:</strong> {order.paymentMethod} {order.paidByWallet ? "(Wallet)" : ""}</p>
+              
               <hr />
               <h4>Items</h4>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table className="items-table">
                 <thead>
                   <tr>
-                    <th style={{ textAlign: "left" }}>Name</th>
-                    <th style={{ textAlign: "left" }}>Category</th>
-                    <th style={{ textAlign: "right" }}>Qty</th>
-                    <th style={{ textAlign: "right" }}>Price</th>
-                    <th style={{ textAlign: "right" }}>Total</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedOrder.items.map((it, idx) => (
+                  {order.items.map((it, idx) => (
                     <tr key={idx}>
                       <td>{it.name || "N/A"}</td>
                       <td>{it.category || "N/A"}</td>
-                      <td style={{ textAlign: "right" }}>{it.qty}</td>
-                      <td style={{ textAlign: "right" }}>
-                        ₱{Number(it.price).toFixed(2)}
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        ₱{(it.qty * Number(it.price)).toFixed(2)}
-                      </td>
+                      <td>{it.qty}</td>
+                      <td>₱{Number(it.price).toFixed(2)}</td>
+                      <td>₱{(it.qty * Number(it.price)).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <hr />
-              <p style={{ textAlign: "right", fontWeight: 600 }}>
-                Total: ₱{selectedOrder.amount}
-              </p>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  justifyContent: "flex-end",
-                  marginTop: 12,
-                }}
-              >
-                <button
-                  onClick={closeOrderDetails}
-                  style={{ padding: "8px 12px" }}
-                >
-                  Close
-                </button>
-              </div>
+              <p className="total">Total: ₱{order.amount}</p>
+            </div>
+            <div className="card-actions">
+              <button className="back-btn" onClick={() => setSelectedOrder(null)}>
+                🔙 Back
+              </button>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  })}
+</div>
+
         )}
+
+    
+
+
       </div>
     </>
   );
