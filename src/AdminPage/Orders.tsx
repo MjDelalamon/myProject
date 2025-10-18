@@ -345,7 +345,7 @@ const Orders: React.FC = () => {
                     className="view-btn"
                     onClick={() => openOrderDetails(order)}
                   >
-                    🔍 View Details
+                     View Details
                   </button>
                   {order.status !== "Completed" && (
                     <button
