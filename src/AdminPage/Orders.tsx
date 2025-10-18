@@ -134,61 +134,60 @@ const Orders: React.FC = () => {
   };
 
   // Complete order: mark Completed and create transaction records + update customer stats
-  // Complete order: mark Completed, deduct points, and create transaction records
   const handleComplete = async (order: Order) => {
-    try {
-      const customerRef = doc(db, "customers", order.customerEmail);
-      const customerSnap = await getDoc(customerRef);
+  try {
+    const customerRef = doc(db, "customers", order.customerEmail);
+    const customerSnap = await getDoc(customerRef);
 
-      if (!customerSnap.exists()) {
-        alert("❌ Customer not found.");
-        return;
-      }
-
-      const customerData = customerSnap.data();
-      const currentPoints = customerData.points || 0;
-      const orderCost = order.amount;
-
-      // check if customer has enough points
-      if (currentPoints < orderCost) {
-        alert("⚠️ Not enough points to complete this order!");
-        return;
-      }
-
-      // deduct points from customer
-      await updateDoc(customerRef, {
-        points: currentPoints - orderCost,
-        updatedAt: serverTimestamp(),
-      });
-
-      // mark order completed
-      await updateDoc(doc(db, "orders", order.id), {
-        status: "Completed",
-        paymentMethod: "Points",
-        updatedAt: serverTimestamp(),
-      });
-
-      // create transaction record (global + customer subcollection)
-      await createTransactionRecords({
-        customerEmail: order.customerEmail,
-        orderId: order.id,
-        amount: order.amount,
-        paymentMethod: "Points",
-        type: "points-used",
-        status: "Completed",
-        date: serverTimestamp(),
-        items: order.items || [],
-      });
-
-      // update customer stats (optional for analytics)
-
-      alert("✅ Order completed and points deducted successfully.");
-      fetchOrders(filteredCustomer);
-    } catch (error) {
-      console.error("Error completing order:", error);
-      alert("❌ Failed to complete order.");
+    if (!customerSnap.exists()) {
+      alert("❌ Customer not found.");
+      return;
     }
-  };
+
+    const customerData = customerSnap.data();
+    const currentPoints = customerData.points || 0;
+    const orderCost = order.amount;
+
+    if (currentPoints < orderCost) {
+      alert("⚠️ Not enough points to complete this order!");
+      return;
+    }
+
+    // Deduct points and add to totalSpent
+    await updateDoc(customerRef, {
+      points: currentPoints - orderCost,
+      totalSpent: (customerData.totalSpent || 0) + orderCost,
+      updatedAt: serverTimestamp(),
+    });
+
+    // Mark order completed
+    await updateDoc(doc(db, "orders", order.id), {
+      status: "Completed",
+      paymentMethod: "Points",
+      updatedAt: serverTimestamp(),
+    });
+
+    // Create transaction records (global + customer subcollection)
+    await createTransactionRecords({
+      customerEmail: order.customerEmail,
+      orderId: order.id,
+      amount: order.amount,
+      paymentMethod: "Points",
+      type: "points-used",
+      status: "Completed",
+      date: serverTimestamp(),
+      items: order.items || [],
+    });
+
+    alert("✅ Order completed and points deducted successfully.");
+    fetchOrders(filteredCustomer);
+  } catch (error) {
+    console.error("Error completing order:", error);
+    alert("❌ Failed to complete order.");
+  }
+};
+
+
 
   // Delete order: remove order and related transactions (global and customer's subcollection)
   const handleDelete = async (orderId: string, customerEmail: string) => {
