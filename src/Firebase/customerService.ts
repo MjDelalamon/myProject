@@ -1,57 +1,34 @@
-// src/services/addCustomerToFirestore.ts
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  doc 
-} from "firebase/firestore";
-import { db } from "../Firebase/firebaseConfig";  
+// src/Firebase/customerService.ts
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "./firebaseConfig";
+import type { CustomerType } from "../AdminPage/Customer";
 
-export const addCustomerToFirestore = async (
-  name: string,
-  email: string,
-  mobile: string,
-  wallet: number
-) => {
+export const addCustomerToFirestore = async (customer: Partial<CustomerType>) => {
   try {
-    // 📌 Bilangin existing customers
-    const snapshot = await getDocs(collection(db, "customers"));
-    const count = snapshot.size + 1;
+    if (!customer.email) throw new Error("Email is required");
 
-    // 📌 Auto-generate customer number (ex: 0001, 0002...)
-    const customerNumber = count.toString().padStart(4, "0");
+    const qrValue = customer.email.trim(); // QR based on email
+    const customerNumber = Date.now().toString().slice(-4); // unique customer number
 
-    // 📌 Create initial customer document
-    const customerRef = await addDoc(collection(db, "customers"), {
+    const docRef = await addDoc(collection(db, "customers"), {
       customerNumber,
-      name,
-      email,
-      mobile,
-      wallet,
+      fullName: customer.fullName,
+      
+      email: customer.email,
+      mobile: customer.mobile,
+      wallet: customer.wallet || 0,
       tier: "Bronze",
       status: "Active",
       points: 0,
-      qrCode: "", // placeholder muna
-      dateJoined: new Date().toISOString(),
-    });
-
-    // 📌 Gamitin ang doc ID bilang QR value
-    const qrValue = customerRef.id;
-
-    // 📌 Update Firestore with QR value (NOT base64)
-    await updateDoc(doc(db, "customers", customerRef.id), {
       qrCode: qrValue,
+      dateJoined: serverTimestamp(),
+      favoriteCategory: customer.favoriteCategory || "",
+     
     });
 
-    return { 
-      success: true, 
-      id: customerRef.id, 
-      customerNumber,
-      qrValue // 👉 Pareho sa mobile, use this to generate QR on frontend
-    };
-  } catch (error) {
+    return { success: true, id: docRef.id, qrValue };
+  } catch (error: any) {
     console.error("❌ Error adding customer:", error);
-    return { success: false, error };
+    return { success: false, error: error.message };
   }
 };

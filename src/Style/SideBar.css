@@ -1,20 +1,20 @@
-/* Sidebar.css */
-
-/* ===== BASE SIDEBAR STYLING ===== */
+/* ===== BASE SIDEBAR ===== */
 .sidebar {
   width: 260px;
   height: 100vh;
-  background: linear-gradient(180deg, #f4f4f4 0%, #f9f9f9 100%);
-  padding: 30px 20px;
+  background: linear-gradient(180deg, #fdf6e3, #f9f9f9);
+  padding: 25px 15px; /* slightly compressed */
   display: flex;
   flex-direction: column;
   position: fixed;
   top: 0;
   left: 0;
-  color: #111;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
-  border-right: 1px solid #2d3748;
+  color: #4b2e05;
   font-family: "Segoe UI", sans-serif;
+  box-shadow: 4px 0 15px rgba(0,0,0,0.15);
+  border-right: 1px solid #e0dcd0;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
   overflow-y: auto;
   transition: transform 0.3s ease-in-out;
   z-index: 1200;
@@ -29,63 +29,68 @@
 .sidebar-title {
   font-size: 1.7rem;
   font-weight: 700;
-  color: #000;
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 30px; /* slightly compressed */
   letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-/* Navigation Links */
+/* Navigation container */
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px; /* compressed spacing */
 }
 
+/* Each link */
 .sidebar-link {
   color: #6b3700;
   text-decoration: none;
-  padding: 10px 14px;
+  padding: 10px 12px;
   border-radius: 10px;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 500;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .sidebar-link:hover {
   background: #a97100;
   color: #fff;
-  transform: translateX(5px);
-  box-shadow: 0 4px 12px rgba(252, 211, 77, 0.3);
+  transform: translateX(3px); /* smaller movement */
+  box-shadow: 0 3px 10px rgba(252, 211, 77, 0.3);
 }
 
 .sidebar-link.active {
-  background: #2d1f14;
+  background: #4b2e05;
   color: #fff;
-  font-weight: bold;
-  transform: scale(1.02);
+  font-weight: 600;
+  transform: scale(1.01);
 }
 
-/* ===== TOGGLE BUTTON ===== */
+/* Section separators */
+.sidebar-separator {
+  height: 1px;
+  background: #e0dcd0;
+  margin: 12px 0; /* space above/below separator */
+  border-radius: 1px;
+}
+
+/* Toggle button */
 .toggle-btn {
   position: fixed;
   top: 20px;
   left: 270px;
-  background: #2d1f14;
+  background: #4b2e05;
   color: white;
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   cursor: pointer;
-  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: left 0.3s ease-in-out, transform 0.2s ease;
+  transition: left 0.3s ease, transform 0.2s ease;
   z-index: 1300;
 }
 
@@ -97,47 +102,21 @@
   transform: scale(1.1);
 }
 
-/* ===== MOBILE RESPONSIVENESS ===== */
+/* Mobile responsiveness */
 @media (max-width: 768px) {
   .sidebar {
     width: 80vw;
     max-width: 240px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
+    border-radius: 0;
     transform: translateX(-100%);
-  }
-
-  .sidebar.active {
-    transform: translateX(0);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.3);
   }
 
   .toggle-btn {
     top: 15px;
     left: 15px;
-    background: #6b3700;
     width: 45px;
     height: 45px;
-    border-radius: 12px;
-    font-size: 20px;
-    z-index: 2000;
-  }
-
-  /* Dim background when sidebar is open */
-  .sidebar-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 1100;
-    display: none;
-  }
-
-  .sidebar.active ~ .sidebar-overlay {
-    display: block;
   }
 
   .sidebar-title {

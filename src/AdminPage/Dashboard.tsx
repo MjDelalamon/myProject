@@ -2,13 +2,22 @@ import { useEffect, useState } from "react";
 import Sidebar from "../components/SideBar";
 import { getActiveCustomers } from "../functions/getActiveCustomers";
 import type { ActiveCustomerItem } from "../functions/getActiveCustomers";
-
+import TransactionsList from "./TransactionsList";
+import { listenToWalletRequestStats } from "../functions/getWalletRequestStats";
 import { fetchDashboardData } from "../functions/fetchDashboardData";
 
 function Dashboard() {
   const [totalSales, setTotalSales] = useState(0);
   const [walletTopups, setWalletTopups] = useState(0);
   const [topItems, setTopItems] = useState<string[]>([]);
+
+  // 🧮 Wallet stats (real-time)
+  const [walletStats, setWalletStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
 
   // ACTIVE customers
   const [activeCustomersCount, setActiveCustomersCount] = useState<number>(0);
@@ -17,14 +26,12 @@ function Dashboard() {
   >([]);
   const [showActiveTable, setShowActiveTable] = useState<boolean>(false);
   const [daysActiveWindow, setDaysActiveWindow] = useState<number>(7); // last X days
-
   const [filter, setFilter] = useState("today"); // 'today' | 'week' | 'month'
 
   // 🧮 Fetch dashboard data
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        // rename fetched activeCustomers to avoid naming collision
         const {
           totalSales: fetchedTotalSales,
           activeCustomers: fetchedActiveCustomers,
@@ -33,8 +40,6 @@ function Dashboard() {
         } = await fetchDashboardData(filter);
 
         setTotalSales(fetchedTotalSales);
-        // Note: we're using getActiveCustomers for the "active customers (last X days)" calc,
-        // but we can still keep fetchedActiveCustomers if needed elsewhere.
         setWalletTopups(fetchedWalletTopups);
         setTopItems(fetchedTopItems);
       } catch (error) {
@@ -59,13 +64,22 @@ function Dashboard() {
     loadActive();
   }, [daysActiveWindow]);
 
+  // 💰 Real-time wallet request listener
+  useEffect(() => {
+    const unsubscribe = listenToWalletRequestStats((stats) => {
+      setWalletStats(stats);
+    });
+
+    return () => unsubscribe(); // cleanup listener
+  }, []);
+
   return (
     <>
       <Sidebar />
       <div className="dashboard-container">
         <h1 className="dashboard-title">Dashboard Overview</h1>
 
-        {/* Controls: Filter for sales + Active window selector */}
+        {/* Controls */}
         <div
           style={{
             display: "flex",
@@ -74,7 +88,20 @@ function Dashboard() {
             marginBottom: 16,
           }}
         >
-          
+          <div>
+            <label>
+              Sales filter:{" "}
+              <select
+                id="sales-filter"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+              </select>
+            </label>
+          </div>
 
           <div>
             <label>
@@ -94,24 +121,9 @@ function Dashboard() {
 
         {/* 📊 Stats Grid */}
         <div className="stats-grid">
-          
           <div className="stat-card">
-            <div>
-            <label>
-              Sales filter:{" "}
-              <select
-                id="sales-filter"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              >
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-              </select>
-            </label>
-          </div>
             <h3>
-              🔢 Total Sales{" "}
+              Total Sales{" "}
               {filter === "today"
                 ? "Today"
                 : filter === "week"
@@ -131,13 +143,17 @@ function Dashboard() {
             </button>
           </div>
 
+          {/* 💰 Wallet Top-ups (real-time) */}
           <div className="stat-card">
-            <h3>💳 Wallet Top-ups</h3>
-            <p>₱{walletTopups.toLocaleString()}</p>
+            <h3>💸 Wallet Top-ups</h3>
+            <p>Total Requests: {walletStats.total}</p>
+            <p>✅ Approved: {walletStats.approved}</p>
+            <p>🕒 Pending: {walletStats.pending}</p>
+            <p>❌ Rejected: {walletStats.rejected}</p>
           </div>
 
           <div className="stat-card">
-            <h3> Top 3 Selling Items</h3>
+            <h3>🏆 Top 3 Selling Items</h3>
             <ul>
               {topItems.length > 0 ? (
                 topItems.map((item, i) => <li key={i}>{item}</li>)
@@ -148,61 +164,7 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* 📉 Graph Placeholders */}
-        <div className="graphs-section">
-          <div className="graph-card">
-            <h3>📊 Sales Trend</h3>
-            <div className="graph-placeholder">[Graph Placeholder]</div>
-          </div>
-
-          <div className="graph-card">
-            <h3>📈 New vs Returning Customers</h3>
-            <div className="graph-placeholder">[Graph Placeholder]</div>
-          </div>
-        </div>
-
-        {/* Active customers table (expandable) */}
-        {showActiveTable && (
-          <div className="active-table" style={{ marginTop: 20 }}>
-            <h3>Active Customers (Last {daysActiveWindow} days)</h3>
-            {activeCustomersList.length === 0 ? (
-              <p>No active customers in this period.</p>
-            ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: "left", padding: 8 }}>
-                      Name / Email
-                    </th>
-                    <th style={{ textAlign: "left", padding: 8 }}>
-                      Last Transaction
-                    </th>
-                    <th style={{ textAlign: "left", padding: 8 }}>
-                      Total Transactions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeCustomersList.map((c) => (
-                    <tr key={c.id}>
-                      <td style={{ padding: 8 }}>
-                        {c.name || c.email || c.id}
-                      </td>
-                      <td style={{ padding: 8 }}>
-                        {c.lastTransaction instanceof Date
-                          ? c.lastTransaction.toLocaleString()
-                          : String(c.lastTransaction)}
-                      </td>
-                      <td style={{ padding: 8 }}>{c.totalTransactions}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
-        {/* 🎁 Personalized Offer Section (if you plan to re-add) */}
+        <TransactionsList />
       </div>
     </>
   );

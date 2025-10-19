@@ -140,7 +140,7 @@ function Menu() {
       <Sidebar />
 
       <div className="menu-container">
-        <h1>🍽️ Menu Management</h1>
+        <h1> Menu Management</h1>
 
         {/* Add Menu Button */}
         <button
@@ -158,7 +158,7 @@ function Menu() {
             marginBottom: "20px",
           }}
         >
-          ➕ Add Menu Item
+           Add Menu Item
         </button>
 
         {/* Menu List */}

@@ -25,7 +25,7 @@ interface TopUpLog {
 
 interface CustomerWallet {
   id: string;
-  name: string;
+  fullName: string;
   mobile: string;
   balance: number;
   logs: TopUpLog[];
@@ -84,7 +84,7 @@ const WalletSystem: React.FC = () => {
 
     setCustomer({
       id: docData.id,
-      name: data.name,
+      fullName: data.name,
       mobile: data.mobile,
       balance: data.wallet || 0,
       logs: data.logs || [],
@@ -206,7 +206,7 @@ const WalletSystem: React.FC = () => {
       <Sidebar />
 
       <div className="wallet-container">
-        <h1 className="wallet-title">💰 Wallet System (Admin)</h1>
+        <h1 className="wallet-title"> Wallet System</h1>
 
         {/* 🔍 Search Customer */}
         <div className="section">
@@ -226,7 +226,7 @@ const WalletSystem: React.FC = () => {
             <div className="section customer-info">
               <h2>Customer Info</h2>
               <p>
-                👤 <strong>Name:</strong> {customer.name}
+                👤 <strong>Name:</strong> {customer.fullName}
               </p>
               <p>
                 📱 <strong>Mobile:</strong> {customer.mobile}
