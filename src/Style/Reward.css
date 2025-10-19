@@ -1,0 +1,164 @@
+/* RewardsPromotions.css */
+
+/* 🌼 Base Styles */
+body {
+  font-family: "Segoe UI", sans-serif;
+  background-color: #fffdf9;
+  margin: 0;
+  padding: 0;
+  color: #2c1e1e;
+}
+
+/* 🧱 Main Container */
+.rewards-container {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(44, 30, 30, 0.1);
+  border-left: 6px solid #a47551;
+  transition: 0.3s ease;
+}
+
+/* 🏷 Title */
+.rewards-title {
+  font-size: 2.5rem;
+  color: #2c1e1e;
+  margin-bottom: 30px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* 📋 Form Styles */
+.promo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  background-color: #fdfaf6;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e4d4c5;
+}
+
+.promo-form label {
+  font-weight: 500;
+  color: #2c1e1e;
+}
+
+.promo-form input,
+.promo-form select {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #c4a484;
+  background-color: #fff;
+  color: #2c1e1e;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 🧭 Buttons */
+.promo-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.button {
+  padding: 10px 20px;
+  background-color: #a47551;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  font-weight: 500;
+  text-align: center;
+}
+
+.button:hover {
+  background-color: #8b5c3c;
+}
+
+/* 🪙 Tier Section */
+.tier-section {
+  margin-top: 40px;
+}
+
+.tier-title {
+  font-size: 1.8rem;
+  color: #2c1e1e;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.tier-card {
+  padding: 20px;
+  background-color: #fffaf4;
+  border-left: 4px solid #a47551;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(44, 30, 30, 0.05);
+}
+
+/* 📱 Responsive Layouts */
+
+/* 🔹 Tablets (768px and below) */
+@media (max-width: 768px) {
+  .rewards-container {
+    margin: 20px;
+    padding: 20px;
+  }
+
+  .rewards-title {
+    font-size: 2rem;
+  }
+
+  .promo-form {
+    padding: 20px;
+  }
+
+  .tier-card {
+    padding: 16px;
+  }
+
+  .button {
+    width: 100%;
+  }
+}
+
+/* 🔹 Mobile Phones (480px and below) */
+@media (max-width: 480px) {
+  .rewards-container {
+    margin: 15px;
+    padding: 15px;
+    border-left: 4px solid #a47551;
+  }
+
+  .rewards-title {
+    font-size: 1.7rem;
+    margin-bottom: 20px;
+  }
+
+  .promo-form {
+    gap: 10px;
+    padding: 15px;
+  }
+
+  .promo-form input,
+  .promo-form select {
+    font-size: 0.95rem;
+    padding: 8px 12px;
+  }
+
+  .tier-title {
+    font-size: 1.4rem;
+  }
+
+  .button {
+    font-size: 0.95rem;
+    padding: 8px 14px;
+  }
+}

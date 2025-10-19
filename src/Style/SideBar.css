@@ -1,0 +1,150 @@
+/* Sidebar.css */
+
+/* ===== BASE SIDEBAR STYLING ===== */
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  background: linear-gradient(180deg, #f4f4f4 0%, #f9f9f9 100%);
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  color: #111;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+  border-right: 1px solid #2d3748;
+  font-family: "Segoe UI", sans-serif;
+  overflow-y: auto;
+  transition: transform 0.3s ease-in-out;
+  z-index: 1200;
+}
+
+/* Hide when toggled */
+.sidebar.hidden {
+  transform: translateX(-100%);
+}
+
+/* Sidebar Title */
+.sidebar-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #000;
+  text-align: center;
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+}
+
+/* Navigation Links */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sidebar-link {
+  color: #6b3700;
+  text-decoration: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-link:hover {
+  background: #a97100;
+  color: #fff;
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(252, 211, 77, 0.3);
+}
+
+.sidebar-link.active {
+  background: #2d1f14;
+  color: #fff;
+  font-weight: bold;
+  transform: scale(1.02);
+}
+
+/* ===== TOGGLE BUTTON ===== */
+.toggle-btn {
+  position: fixed;
+  top: 20px;
+  left: 270px;
+  background: #2d1f14;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.3s ease-in-out, transform 0.2s ease;
+  z-index: 1300;
+}
+
+.sidebar.hidden + .toggle-btn {
+  left: 20px;
+}
+
+.toggle-btn:hover {
+  transform: scale(1.1);
+}
+
+/* ===== MOBILE RESPONSIVENESS ===== */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 80vw;
+    max-width: 240px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  .toggle-btn {
+    top: 15px;
+    left: 15px;
+    background: #6b3700;
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    font-size: 20px;
+    z-index: 2000;
+  }
+
+  /* Dim background when sidebar is open */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1100;
+    display: none;
+  }
+
+  .sidebar.active ~ .sidebar-overlay {
+    display: block;
+  }
+
+  .sidebar-title {
+    font-size: 1.5rem;
+  }
+
+  .sidebar-link {
+    font-size: 1.1rem;
+  }
+}

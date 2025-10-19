@@ -1,0 +1,47 @@
+import { Routes, Route, Navigate } from "react-router-dom";
+
+import Sidebar from "./components/SideBar";
+import Intro from "./Intro";
+import Owner from "./OwnerSide";
+import Dashboard from "./AdminPage/Dashboard";
+import Customer from "./AdminPage/Customer";
+import Orders from "./AdminPage/Orders";
+import Promotion from "./AdminPage/Promotion";
+import Menu from "./AdminPage/Menu";
+import WalletSystem from "./AdminPage/Wallet";
+import SidebarStaff from "./components/SideBarStaff";
+import TakeOrder from "./StaffPage/TakeOrder";
+
+import "./Style/Dashboard.css";
+import "./Style/App.css";
+import "./Style/index.css";
+import "./Style/intro.css";
+import "./Style/sideBar.css";
+import "./Style/Customer.css";
+
+import "./Style/Reward.css";
+import "./Style/Menu.css";
+import "./Style/Wallet.css";
+import "./Style/TakeOrder.css";
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/Intro" replace />} />
+      <Route path="/Intro" element={<Intro />} />
+      <Route path="/Owner" element={<Owner />} />
+      <Route path="/Sidebar" element={<Sidebar />} />
+      <Route path="/SideBarStaff" element={<SidebarStaff />} />
+      <Route path="/Dashboard" element={<Dashboard />} />
+      <Route path="/customers" element={<Customer />} />
+      <Route path="/orders" element={<Orders />} />
+
+      <Route path="/rewards" element={<Promotion />} />
+      <Route path="/menu" element={<Menu />} />
+      <Route path="/wallet" element={<WalletSystem />} />
+      <Route path="/take-order" element={<TakeOrder />} />
+      </Routes>
+  );
+}
+
+export default App;
