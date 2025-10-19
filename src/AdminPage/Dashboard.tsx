@@ -74,20 +74,7 @@ function Dashboard() {
             marginBottom: 16,
           }}
         >
-          <div>
-            <label>
-              Sales filter:{" "}
-              <select
-                id="sales-filter"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              >
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-              </select>
-            </label>
-          </div>
+          
 
           <div>
             <label>
@@ -107,7 +94,22 @@ function Dashboard() {
 
         {/* 📊 Stats Grid */}
         <div className="stats-grid">
+          
           <div className="stat-card">
+            <div>
+            <label>
+              Sales filter:{" "}
+              <select
+                id="sales-filter"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+              </select>
+            </label>
+          </div>
             <h3>
               🔢 Total Sales{" "}
               {filter === "today"
@@ -135,7 +137,7 @@ function Dashboard() {
           </div>
 
           <div className="stat-card">
-            <h3>🥇 Top 3 Selling Items</h3>
+            <h3> Top 3 Selling Items</h3>
             <ul>
               {topItems.length > 0 ? (
                 topItems.map((item, i) => <li key={i}>{item}</li>)
