@@ -11,6 +11,7 @@ import Menu from "./AdminPage/Menu";
 import WalletSystem from "./AdminPage/Wallet";
 import SidebarStaff from "./components/SideBarStaff";
 import TakeOrder from "./StaffPage/TakeOrder";
+import TransactionsList from "./AdminPage/TransactionsList";
 
 import "./Style/Dashboard.css";
 import "./Style/App.css";
@@ -18,6 +19,7 @@ import "./Style/index.css";
 import "./Style/intro.css";
 import "./Style/sideBar.css";
 import "./Style/Customer.css";
+import "./Style/TransactionsList.css"
 
 import "./Style/Reward.css";
 import "./Style/Menu.css";
@@ -35,6 +37,7 @@ function App() {
       <Route path="/Dashboard" element={<Dashboard />} />
       <Route path="/customers" element={<Customer />} />
       <Route path="/orders" element={<Orders />} />
+      <Route path="/transactions" element={<TransactionsList />} />
 
       <Route path="/rewards" element={<Promotion />} />
       <Route path="/menu" element={<Menu />} />

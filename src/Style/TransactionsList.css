@@ -1,0 +1,162 @@
+.transactions-container {
+  padding: 20px;
+  background-color: #fdfaf6;
+  font-family: "Poppins", sans-serif;
+  min-height: 100vh;
+}
+
+.transactions-header {
+  text-align: center;
+  color: #4e342e;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+/* Controls (search, filter, sort) */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 15px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.sort-button {
+  flex: 0 0 auto; /* do not grow */
+  background-color: #efebe9;
+  border: 1px solid #d7ccc8;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  color: #4b2e05;
+  cursor: pointer;
+  transition: all 0.2s ease, transform 0.2s ease;
+}
+
+.sort-button:hover {
+  background-color: #d7ccc8;
+  transform: translateY(-1px);
+}
+
+.search-input {
+  flex: 1 1 200px; /* grow but minimum width 200px */
+  max-width: 400px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d7ccc8;
+  font-size: 14px;
+}
+
+.filter-select {
+  flex: 0 0 160px; /* fixed width */
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d7ccc8;
+  font-size: 14px;
+  background-color: #fffdfb;
+  color: #4b2e05;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-select:hover {
+  border-color: #bfa78d;
+}
+
+.loading,
+.no-data {
+  text-align: center;
+  font-size: 16px;
+  color: #8d6e63;
+  margin-top: 30px;
+}
+
+/* Table wrapper for horizontal scroll */
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fffdfb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 3px 6px rgba(62, 39, 35, 0.08);
+}
+
+.transactions-table th,
+.transactions-table td {
+  padding: 12px 16px;
+  text-align: left;
+  color: #4e342e;
+}
+
+.transactions-table th {
+  background-color: #efebe9;
+  font-weight: 600;
+  text-align: center;
+  font-size: 14px;
+  color: #4b2e05;
+  text-transform: uppercase;
+}
+
+.transactions-table td {
+    text-align: center;
+  font-size: 14px;
+  border-bottom: 1px solid #f1e0c6;
+}
+
+.transactions-table tr:last-child td {
+  border-bottom: none;
+}
+
+.transactions-table tr:hover {
+  background-color: #f5f0e7;
+  cursor: pointer;
+}
+
+.transactions-table .items div {
+  font-size: 13px;
+  color: #5d4037;
+  margin: 2px 0;
+}
+
+.payment-method.Points {
+  color: #388e3c;
+  font-weight: 600;
+}
+
+.payment-method.wallet {
+  color: #1976d2;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .search-input,
+  .filter-select,
+  .sort-button {
+    flex: 1 1 auto;
+    max-width: 100%;
+  }
+
+  .transactions-table th,
+  .transactions-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+
+  .transactions-table .items div {
+    font-size: 12px;
+  }
+}

@@ -99,9 +99,19 @@ const Orders: React.FC = () => {
   }, []);
 
   // new helper: create transaction documents (global & customer subcollection)
-  // new helper: create transaction documents (global & customer subcollection)
   const createTransactionRecords = async ({
-    customerEmail,
+  customerEmail,
+  customerName, // new
+  orderId,
+  amount,
+  paymentMethod,
+  type,
+  status,
+  date,
+  items,
+}: any) => {
+  // Global transaction document
+  await addDoc(collection(db, "transactions"), {
     orderId,
     amount,
     paymentMethod,
@@ -109,29 +119,23 @@ const Orders: React.FC = () => {
     status,
     date,
     items,
-  }: any) => {
-    // create global transaction document
-    await addDoc(collection(db, "transactions"), {
-      orderId,
-      amount,
-      paymentMethod,
-      type,
-      status,
-      date,
-      items, // ← dito na mismo nakasama lahat ng items
-    });
+    customerId: customerEmail,
+    fullName: customerName, // store full name
+  });
 
-    // also create one under customer's transactions subcollection
-    await addDoc(collection(db, "customers", customerEmail, "transactions"), {
-      orderId,
-      amount,
-      paymentMethod,
-      type,
-      status,
-      date,
-      items,
-    });
-  };
+  // Customer's subcollection
+  await addDoc(collection(db, "customers", customerEmail, "transactions"), {
+    orderId,
+    amount,
+    paymentMethod,
+    type,
+    status,
+    date,
+    items,
+    customerId: customerEmail,
+    fullName: customerName, // store full name
+  });
+};
 
   // Complete order: mark Completed and create transaction records + update customer stats
   const handleComplete = async (order: Order) => {
@@ -167,9 +171,10 @@ const Orders: React.FC = () => {
       updatedAt: serverTimestamp(),
     });
 
-    // Create transaction records (global + customer subcollection)
+    // Create transaction records with customer full name
     await createTransactionRecords({
       customerEmail: order.customerEmail,
+      customerName: customerData.fullName || "N/A", // pass full name
       orderId: order.id,
       amount: order.amount,
       paymentMethod: "Points",
@@ -186,6 +191,7 @@ const Orders: React.FC = () => {
     alert("❌ Failed to complete order.");
   }
 };
+
 
 
 

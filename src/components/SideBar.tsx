@@ -13,6 +13,7 @@ function Sidebar() {
     { to: "/menu", label: "Menu" },
     { to: "/wallet", label: "Wallet Requests" },
     { to: "/feedback", label: "Feedback" },
+    {to: "/transactions", label: "Transactions" },
     { to: "/notifications", label: "Notifications" },
     { to: "/settings", label: "Settings" },
     { to: "/", label: "Logout" },
