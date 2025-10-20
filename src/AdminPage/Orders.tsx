@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import Sidebar from "../components/SideBar";
+import { updateFavoriteCategory } from "../functions/updateFavoriteCategory";
 
 import {
   collection,
@@ -183,6 +184,8 @@ const Orders: React.FC = () => {
       date: serverTimestamp(),
       items: order.items || [],
     });
+    await updateFavoriteCategory(order.customerEmail);
+
 
     alert("✅ Order completed and points deducted successfully.");
     fetchOrders(filteredCustomer);

@@ -108,7 +108,7 @@ const TransactionsList: React.FC = () => {
     <>
       <Sidebar />
       <div className="transactions-container">
-        <h2 className="transactions-header">Transactions History</h2>
+        <h2 className="transactions-header">Transactions</h2>
 
         <div className="controls">
           

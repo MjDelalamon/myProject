@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import SidebarStaff from "../components/SideBarStaff";
+import { updateFavoriteCategory } from "../functions/updateFavoriteCategory";
+
 import {
   getFirestore,
   doc,
@@ -66,16 +68,7 @@ interface Order {
   paidByWallet: boolean;
 }
 
-interface GlobalTransactionInput {
-  customerEmail: string;
-  orderId: string;
-  amount: number;
-  paymentMethod: string;
-  type: string;
-  status: string;
-  date: Timestamp;
-  items: OrderItem[];
-}
+
 
 export default function TakeOrderWithQR() {
   const [items, setItems] = useState<OrderItem[]>([
@@ -199,36 +192,7 @@ export default function TakeOrderWithQR() {
     );
   };
 
-  // 🔹 Helper to add global transaction
-  const addGlobalTransaction = async (input: GlobalTransactionInput) => {
-    const {
-      customerEmail,
-      orderId,
-      amount,
-      paymentMethod,
-      type,
-      status,
-      date,
-      items,
-    } = input;
-    const transRef = await addDoc(collection(db, "transactions"), {
-      customerEmail,
-      orderId,
-      amount,
-      paymentMethod,
-      type,
-      status,
-      date,
-    });
-    for (const item of items) {
-      await addDoc(fbCollection(db, "transactions", transRef.id, "items"), {
-        name: item.name,
-        qty: item.qty,
-        price: item.price,
-        category: item.category || "Uncategorized",
-      });
-    }
-  };
+  
 
   
   // 🔹 Place Order
@@ -300,7 +264,7 @@ const placeOrder = async () => {
       date: timestamp,
       items,
     });
-
+    await updateFavoriteCategory(walletCustomer.id); // ✅ update favorite category here
     alert(
       `✅ Order placed! ₱${total} deducted from wallet. ${points} points added to ${walletCustomer.fullName}.`
     );
@@ -371,6 +335,9 @@ const placeOrder = async () => {
       date: timestamp,
       items,
     });
+
+    await updateFavoriteCategory(customer.id);
+
 
     alert(
       `✅ Order placed (Over the Counter)! ${earnedPoints} points added to ${customer.fullName}.`

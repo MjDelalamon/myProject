@@ -145,15 +145,16 @@ function Dashboard() {
 
           {/* 💰 Wallet Top-ups (real-time) */}
           <div className="stat-card">
-            <h3>💸 Wallet Top-ups</h3>
+            <h3> Wallet Top-ups</h3>
+            
+            <p> Approved: {walletStats.approved}</p>
+            <p> Pending: {walletStats.pending}</p>
+            <p> Rejected: {walletStats.rejected}</p>
             <p>Total Requests: {walletStats.total}</p>
-            <p>✅ Approved: {walletStats.approved}</p>
-            <p>🕒 Pending: {walletStats.pending}</p>
-            <p>❌ Rejected: {walletStats.rejected}</p>
           </div>
 
           <div className="stat-card">
-            <h3>🏆 Top 3 Selling Items</h3>
+            <h3> Top 3 Selling Items</h3>
             <ul>
               {topItems.length > 0 ? (
                 topItems.map((item, i) => <li key={i}>{item}</li>)
