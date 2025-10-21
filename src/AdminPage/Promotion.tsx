@@ -15,15 +15,20 @@ interface Promotion {
   id: string;
   title: string;
   description: string;
-  discount: number;
+  price: number; // 💰 changed from discount → price
   startDate: string;
   endDate: string;
+  promoType: "global" | "personalized";
+  applicableTiers: string[];
   createdAt?: any;
 }
 
 function Promotion() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [form, setForm] = useState<Partial<Promotion>>({});
+  const [form, setForm] = useState<Partial<Promotion>>({
+    promoType: "global",
+    applicableTiers: [],
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // 🔹 Load promotions from Firestore
@@ -39,15 +44,27 @@ function Promotion() {
     fetchPromotions();
   }, []);
 
-  // 🔹 Handle form input changes
+  // 🔹 Handle input change
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: name === "discount" ? parseFloat(value) : value,
+      [name]: name === "price" ? parseFloat(value) : value,
     }));
+  };
+
+  // 🔹 Handle tier checkbox
+  const handleTierChange = (tier: string) => {
+    setForm((prev) => {
+      const tiers = prev.applicableTiers || [];
+      return tiers.includes(tier)
+        ? { ...prev, applicableTiers: tiers.filter((t) => t !== tier) }
+        : { ...prev, applicableTiers: [...tiers, tier] };
+    });
   };
 
   // 🔹 Add or update promotion
@@ -55,7 +72,7 @@ function Promotion() {
     if (
       !form.title ||
       !form.description ||
-      !form.discount ||
+      !form.price ||
       !form.startDate ||
       !form.endDate
     ) {
@@ -64,15 +81,8 @@ function Promotion() {
     }
 
     if (editingId) {
-      // 🔸 Update
       const ref = doc(db, "promotions", editingId);
-      await updateDoc(ref, {
-        title: form.title,
-        description: form.description,
-        discount: form.discount,
-        startDate: form.startDate,
-        endDate: form.endDate,
-      });
+      await updateDoc(ref, { ...form });
       setPromotions((prev) =>
         prev.map((p) =>
           p.id === editingId ? ({ ...p, ...form } as Promotion) : p
@@ -80,13 +90,8 @@ function Promotion() {
       );
       setEditingId(null);
     } else {
-      // 🔸 Add
       const newDoc = await addDoc(collection(db, "promotions"), {
-        title: form.title,
-        description: form.description,
-        discount: form.discount,
-        startDate: form.startDate,
-        endDate: form.endDate,
+        ...form,
         createdAt: serverTimestamp(),
       });
       setPromotions((prev) => [
@@ -95,22 +100,21 @@ function Promotion() {
       ]);
     }
 
-    setForm({});
+    setForm({ promoType: "global", applicableTiers: [] });
   };
 
-  // 🔹 Edit existing promo
+  // 🔹 Edit / Delete
   const handleEdit = (promo: Promotion) => {
     setForm(promo);
     setEditingId(promo.id);
   };
 
-  // 🔹 Delete promo
   const handleDelete = async (id: string) => {
     await deleteDoc(doc(db, "promotions", id));
     setPromotions((prev) => prev.filter((p) => p.id !== id));
   };
 
-  // 🔹 Check if promo is active
+  // 🔹 Status display
   const getStatus = (endDate: string) => {
     const now = new Date();
     const end = new Date(endDate);
@@ -121,98 +125,120 @@ function Promotion() {
     <>
       <Sidebar />
 
-      <div className="p-6 max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">📢 Promotion Management</h1>
+      <div className="promotion-container">
+        {/* Form Section */}
+        <div className="promotion-form">
+          <h2>{editingId ? "Edit Promotion" : "Add Promotion"}</h2>
 
-        {/* Add/Edit Form */}
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <h2 className="text-lg font-semibold mb-2">
-            {editingId ? "Edit Promotion" : "Add Promotion"}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="form-grid">
             <input
               type="text"
               name="title"
               placeholder="Promotion Title"
               value={form.title || ""}
               onChange={handleChange}
-              className="border px-3 py-2 rounded"
             />
             <input
               type="number"
-              name="discount"
-              placeholder="Discount (%)"
-              value={form.discount || ""}
+              name="price"
+              placeholder="Promo Price (₱)"
+              value={form.price || ""}
               onChange={handleChange}
-              className="border px-3 py-2 rounded"
             />
             <input
               type="date"
               name="startDate"
               value={form.startDate || ""}
               onChange={handleChange}
-              className="border px-3 py-2 rounded"
             />
             <input
               type="date"
               name="endDate"
               value={form.endDate || ""}
               onChange={handleChange}
-              className="border px-3 py-2 rounded"
             />
           </div>
+
+          {/* Promo Type */}
+          <div className="promo-type">
+            <label>Promo Type:</label>
+            <select
+              name="promoType"
+              value={form.promoType}
+              onChange={handleChange}
+            >
+              <option value="global">Global (for everyone or tiers)</option>
+              <option value="personalized">Personalized (1-time per user)</option>
+            </select>
+          </div>
+
+          {/* Tier Selection */}
+          {form.promoType === "global" && (
+            <div className="tier-selection">
+              <label>Applicable Tiers:</label>
+              <div className="tier-options">
+                {["Bronze", "Silver", "Gold"].map((tier) => (
+                  <label key={tier}>
+                    <input
+                      type="checkbox"
+                      checked={form.applicableTiers?.includes(tier) || false}
+                      onChange={() => handleTierChange(tier)}
+                    />
+                    {tier}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           <textarea
             name="description"
             placeholder="Description"
             value={form.description || ""}
             onChange={handleChange}
-            className="border px-3 py-2 rounded mt-3 w-full"
             rows={3}
           />
-          <button
-            onClick={handleSubmit}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
+
+          <button onClick={handleSubmit}>
             {editingId ? "Update Promotion" : "Add Promotion"}
           </button>
         </div>
 
         {/* Promotion List */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2">Current Promotions</h2>
+        <div className="promotion-list">
+          <h2>Current Promotions</h2>
           {promotions.length === 0 ? (
-            <p className="text-gray-500">No promotions added yet.</p>
+            <p>No promotions added yet.</p>
           ) : (
-            <ul className="space-y-3">
+            <ul>
               {promotions.map((promo) => (
-                <li
-                  key={promo.id}
-                  className="border p-3 rounded flex justify-between items-center"
-                >
-                  <div>
-                    <h3 className="font-bold text-lg">{promo.title}</h3>
-                    <p className="text-sm text-gray-700">{promo.description}</p>
-                    <p className="text-sm">
-                      Discount: <b>{promo.discount}%</b>
+                <li key={promo.id} className="promotion-item">
+                  <div className="promo-details">
+                    <h3>{promo.title}</h3>
+                    <p>{promo.description}</p>
+                    <p>
+  Price:{" "}
+  <b>
+    ₱
+    {promo.price !== undefined && !isNaN(promo.price)
+      ? promo.price.toFixed(2)
+      : "0.00"}
+  </b>
+</p>
+
+                    <p>
+                      Type: <b>{promo.promoType}</b>{" "}
+                      {promo.applicableTiers?.length > 0 &&
+                        `| Tiers: ${promo.applicableTiers.join(", ")}`}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="promo-status">
                       {promo.startDate} → {promo.endDate} | Status:{" "}
                       <b>{getStatus(promo.endDate)}</b>
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(promo)}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(promo.id)}
-                      className="text-red-600 hover:underline"
-                    >
-                      Delete
-                    </button>
+                  <div className="promo-actions">
+                    <button onClick={() => handleEdit(promo)}>Edit</button>
+                    <button onClick={() => handleDelete(promo.id)}>Delete</button>
                   </div>
                 </li>
               ))}

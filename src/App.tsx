@@ -21,7 +21,7 @@ import "./Style/sideBar.css";
 import "./Style/Customer.css";
 import "./Style/TransactionsList.css"
 
-import "./Style/Reward.css";
+import "./Style/Promotion.css"
 import "./Style/Menu.css";
 import "./Style/Wallet.css";
 import "./Style/TakeOrder.css";

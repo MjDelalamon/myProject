@@ -83,6 +83,75 @@ export default function TakeOrderWithQR() {
   const [walletScanResult, setWalletScanResult] = useState<string | null>(null);
   const [walletCustomer, setWalletCustomer] = useState<Customer | null>(null);
   const [showWalletScanner, setShowWalletScanner] = useState(false);
+  const [showPromoScanner, setShowPromoScanner] = useState(false);
+const [promoScanResult, setPromoScanResult] = useState<string | null>(null);
+const [promoStatus, setPromoStatus] = useState<string | null>(null);
+const [pendingPromo, setPendingPromo] = useState<any>(null);
+const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+
+
+
+// 🔹 Start Promo QR Scanner (for verifying claimed promotions)
+const startPromoScanner = () => {
+  setShowPromoScanner(true);
+
+  const scanner = new Html5QrcodeScanner(
+    "promo-reader",
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    false
+  );
+
+  scanner.render(
+    async (decodedText: string) => {
+      setPromoScanResult(decodedText);
+
+      try {
+        try {
+  const data = JSON.parse(decodedText);
+
+  if (data.type !== "PROMO") {
+    setPromoStatus("❌ Invalid QR type.");
+    return;
+  }
+
+  const promoId = data.promoId;
+  const email = data.email;
+
+  const promoRef = doc(db, `customers/${email}/claimedPromos/${promoId}`);
+  const promoSnap = await getDoc(promoRef);
+
+  if (!promoSnap.exists()) {
+    setPromoStatus("❌ Promo not found or invalid.");
+  } else {
+    const promoData = promoSnap.data();
+
+    if (promoData.isUsed) {
+      setPromoStatus("⚠️ Promo already redeemed.");
+    } else {
+      setPendingPromo({ ...promoData, promoId, email });
+      setIsConfirmVisible(true);
+      setPromoStatus("✅ Promo valid! Awaiting confirmation...");
+    }
+  }
+} catch (err) {
+  console.error("Error verifying promo:", err);
+  setPromoStatus("❌ Invalid QR format.");
+}
+
+      } catch (err) {
+        console.error("Error verifying promo:", err);
+        setPromoStatus("❌ Error verifying promo.");
+      }
+
+      await scanner.clear().catch(() => {});
+      setShowPromoScanner(false);
+    },
+    (err: string) => console.warn(err)
+  );
+};
+
+
+
 
   // 🔹 Start Wallet QR Scanner
   const startWalletScanner = () => {
@@ -193,9 +262,141 @@ export default function TakeOrderWithQR() {
   };
 
   
+const redeemPromo = async (method: "wallet" | "counter") => {
+  if (!pendingPromo) return;
 
-  
-  // 🔹 Place Order
+  try {
+    const promoRef = doc(
+      db,
+      `customers/${pendingPromo.email}/claimedPromos/${pendingPromo.promoId}`
+    );
+    const promoSnap = await getDoc(promoRef);
+    const promoData = promoSnap.data();
+
+    if (!promoData) {
+      setPromoStatus("❌ Promo not found.");
+      return;
+    }
+
+    const promoPrice = Number(promoData.price) || 0;
+    const earnedPoints = +(promoPrice * 0.05).toFixed(2);
+
+    const customerRef = doc(db, "customers", pendingPromo.email);
+    const customerSnap = await getDoc(customerRef);
+
+    if (!customerSnap.exists()) {
+      setPromoStatus("❌ Customer not found in database.");
+      return;
+    }
+
+    const customerData = customerSnap.data();
+    const walletBalance = Number(customerData.wallet || 0);
+    const currentPoints = Number(customerData.points || 0);
+
+    // 🔹 Wallet Redeem
+    // 🔹 Wallet Redeem
+if (method === "wallet") {
+  if (walletBalance < promoPrice) {
+    setPromoStatus(
+      `❌ Insufficient wallet balance. Available: ₱${walletBalance}, Required: ₱${promoPrice}`
+    );
+    return;
+  }
+
+  const newWallet = +(walletBalance - promoPrice).toFixed(2);
+  const newPoints = +(currentPoints + earnedPoints).toFixed(2);
+  const newTotalSpent = +(Number(customerData.totalSpent || 0) + promoPrice).toFixed(2); // ✅ ADD THIS
+
+  await updateDoc(customerRef, {
+    wallet: newWallet,
+    points: newPoints,
+    totalSpent: newTotalSpent, // ✅ UPDATE
+  });
+
+  await addDoc(
+    fbCollection(db, "customers", pendingPromo.email, "transactions"),
+    {
+      transactionId: `PROMO-${Date.now()}`,
+      promoTitle: promoData.title,
+      promoId: pendingPromo.promoId,
+      type: "promo-redemption",
+      method: "wallet",
+      amount: promoPrice,
+      earnedPoints,
+      status: "Completed",
+      redeemedAt: Timestamp.now(),
+    }
+  );
+
+  setPromoStatus(
+    `🎉 Promo redeemed via Wallet! ₱${promoPrice} deducted. +${earnedPoints} points earned!`
+  );
+}
+
+// 🔹 Counter Redeem
+if (method === "counter") {
+  const newPoints = +(currentPoints + earnedPoints).toFixed(2);
+  const newTotalSpent = +(Number(customerData.totalSpent || 0) + promoPrice).toFixed(2); // ✅ ADD THIS
+
+  await updateDoc(customerRef, {
+    points: newPoints,
+    totalSpent: newTotalSpent, // ✅ UPDATE
+  });
+
+  await addDoc(
+    fbCollection(db, "customers", pendingPromo.email, "transactions"),
+    {
+      transactionId: `PROMO-${Date.now()}`,
+      promoTitle: promoData.title,
+      promoId: pendingPromo.promoId,
+      type: "promo-redemption",
+      method: "counter",
+      amount: promoPrice,
+      earnedPoints,
+      status: "Completed",
+      redeemedAt: Timestamp.now(),
+    }
+  );
+
+  setPromoStatus(
+    `🎟️ Promo redeemed Over the Counter! +${earnedPoints} points earned!`
+  );
+}
+
+
+    
+    // 🔹 Log globally and per-customer
+const redeemedPromoData = {
+  promoId: pendingPromo.promoId,
+  email: pendingPromo.email,
+  title: promoData.title,
+  price: promoPrice,
+  earnedPoints,
+  redeemedVia: method,
+  redeemedAt: Timestamp.now(),
+};
+
+// 🔹 Save to global collection
+await addDoc(collection(db, "redeemedPromos"), redeemedPromoData);
+
+// 🔹 Save to the customer's own collection
+await addDoc(
+  collection(db, `customers/${pendingPromo.email}/redeemedPromos`),
+  redeemedPromoData
+);
+
+  } catch (err) {
+    console.error("Error redeeming promo:", err);
+    setPromoStatus("❌ Error redeeming promo.");
+  }
+
+  setPendingPromo(null);
+  setIsConfirmVisible(false);
+};
+
+
+
+
   // 🔹 Place Order
 const placeOrder = async () => {
   if (items.length === 0) return alert("Add at least one item.");
@@ -500,6 +701,57 @@ const placeOrder = async () => {
           {/* RIGHT COLUMN */}
           <div className="column">
             <h3>Action</h3>
+
+            <hr style={{ margin: "20px 0" }} />
+<h3>Promo Verification</h3>
+<button onClick={startPromoScanner}>🎟️ Scan Promo QR</button>
+
+{showPromoScanner && (
+  <div id="promo-reader" style={{ width: 350, height: 300, marginTop: 10 }} />
+)}
+
+{isConfirmVisible && pendingPromo && (
+  <div
+    style={{
+      border: "1px solid #ccc",
+      borderRadius: 10,
+      padding: 20,
+      marginTop: 15,
+      background: "#fff8dc",
+    }}
+  >
+    <h3>Confirm Promo Redemption</h3>
+    <p><b>Promo:</b> {pendingPromo.title}</p>
+    <p><b>Customer:</b> {pendingPromo.email}</p>
+
+    <div style={{ marginTop: 15 }}>
+      <button
+        onClick={() => redeemPromo("wallet")}
+        style={{ marginRight: 10 }}
+      >
+        💳 Redeem via Wallet
+      </button>
+
+      <button
+        onClick={() => redeemPromo("counter")}
+        style={{ marginRight: 10 }}
+      >
+        💵 Redeem Over the Counter
+      </button>
+
+      <button onClick={() => setIsConfirmVisible(false)}>❌ Cancel</button>
+    </div>
+  </div>
+)}
+
+
+{promoScanResult && (
+  <div style={{ marginTop: 10 }}>
+    <b>Scanned QR:</b> {promoScanResult}
+    <p style={{ marginTop: 5 }}>{promoStatus}</p>
+  </div>
+)}
+
 
             {!customer ? (
               <>

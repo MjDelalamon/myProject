@@ -28,6 +28,7 @@ type Order = {
   paymentMethod: string;
   paidByWallet?: boolean;
   pointsEarned?: number;
+  instructions?: string;
 };
 
 const Orders: React.FC = () => {
@@ -85,6 +86,7 @@ const Orders: React.FC = () => {
           paymentMethod,
           paidByWallet: !!data.paidByWallet,
           pointsEarned: data.pointsEarned || 0,
+          instructions: data.instructions || "",
         } as Order;
       });
       setOrders(fetchedOrders);
@@ -379,7 +381,9 @@ const Orders: React.FC = () => {
             <div>
               <h3>Order Details — {order.id}</h3>
               <p><strong>Customer:</strong> {order.customerEmail}</p>
-              <p><strong>Payment:</strong> {order.paymentMethod} {order.paidByWallet ? "(Wallet)" : ""}</p>
+              <p><strong>Payment:</strong> Points</p>
+              <hr />
+              <p><strong>Instructions:</strong> {order.instructions}</p>
               
               <hr />
               <h4>Items</h4>
@@ -405,8 +409,7 @@ const Orders: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-              <hr />
-              <p className="total">Total: ₱{order.amount}</p>
+              
             </div>
             <div className="card-actions">
               <button className="back-btn" onClick={() => setSelectedOrder(null)}>
