@@ -6,6 +6,7 @@ import CustomerTable from "../components/CustomerTable";
 import AddCustomerModal from "../components/AddCustomerModal";
 import ViewCustomerModal from "../components/customerModal";
 import { addCustomerToFirestore } from "../Firebase/customerService";
+import "../Style/Customer.css";
 
 export interface CustomerType {
   id: string;

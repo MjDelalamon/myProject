@@ -12,6 +12,8 @@ import {
   collection,
   getDocs,
   Timestamp,
+  where,
+  query,
 } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 import { collection as fbCollection } from "firebase/firestore";
@@ -88,6 +90,88 @@ const [promoScanResult, setPromoScanResult] = useState<string | null>(null);
 const [promoStatus, setPromoStatus] = useState<string | null>(null);
 const [pendingPromo, setPendingPromo] = useState<any>(null);
 const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+// ✅ Add at the top with useState
+// 🔹 State
+const [mobileSearch, setMobileSearch] = useState("");
+// 🔹 State
+
+const [nonAppCustomer, setNonAppCustomer] = useState<Customer | null>(null);
+const [searchStatus, setSearchStatus] = useState<string | null>(null);
+const [showNonAppScanner, setShowNonAppScanner] = useState(false);
+
+// 🔹 Search by mobile manually
+// 🔹 Search by mobile manually
+const searchCustomerByMobile = async () => {
+  if (!mobileSearch) return alert("Enter a mobile number to search.");
+
+  try {
+    const q = query(
+      collection(db, "customers"),
+      where("mobile", "==", mobileSearch)
+    );
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      const docSnap = snap.docs[0];
+      const data = docSnap.data() as Customer;
+      setNonAppCustomer({ id: docSnap.id, ...data });
+      setSearchStatus(`✅ Customer found: ${data.fullName}`);
+    } else {
+      setNonAppCustomer(null);
+      setSearchStatus("❌ No customer found with this mobile number.");
+    }
+  } catch (err) {
+    console.error("Error searching customer:", err);
+    setNonAppCustomer(null);
+    setSearchStatus("❌ Error occurred during search.");
+  }
+};
+
+// 🔹 Scan QR for Non-App customer
+const startNonAppScanner = () => {
+  setShowNonAppScanner(true);
+
+  const scanner = new Html5QrcodeScanner(
+    "nonapp-reader",
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    false
+  );
+
+  scanner.render(
+    async (decodedText: string) => {
+      try {
+        // QR contains mobile number
+        const q = query(
+          collection(db, "customers"),
+          where("mobile", "==", decodedText)
+        );
+        const snap = await getDocs(q);
+
+        if (!snap.empty) {
+          const docSnap = snap.docs[0];
+          const data = docSnap.data() as Customer;
+          setNonAppCustomer({ id: docSnap.id, ...data });
+          setSearchStatus(`✅ Customer found: ${data.fullName}`);
+        } else {
+          setNonAppCustomer(null);
+          setSearchStatus("❌ Customer not found!");
+        }
+      } catch (err) {
+        console.error("Error fetching Non-App customer:", err);
+        setNonAppCustomer(null);
+        setSearchStatus("❌ Error fetching customer.");
+      }
+
+      await scanner.clear().catch(() => {});
+      setShowNonAppScanner(false);
+    },
+    (err) => console.warn(err)
+  );
+};
+
+
+
+
 
 
 
@@ -384,7 +468,9 @@ await addDoc(
   collection(db, `customers/${pendingPromo.email}/redeemedPromos`),
   redeemedPromoData
 );
+  await updateDoc(promoRef, { isUsed: true });
 
+    setPromoStatus("✅ Promo redeemed and marked as used!");
   } catch (err) {
     console.error("Error redeeming promo:", err);
     setPromoStatus("❌ Error redeeming promo.");
@@ -702,8 +788,32 @@ const placeOrder = async () => {
           <div className="column">
             <h3>Action</h3>
 
-            <hr style={{ margin: "20px 0" }} />
-<h3>Promo Verification</h3>
+            
+
+
+
+ <hr style={{ margin: "20px 0" }} />
+           
+
+            
+{!customer ? (
+              <>
+                <button onClick={startScanner}>📷 Scan QR for Points</button>
+                {showScanner && (
+                  <div
+                    id="reader"
+                    style={{ width: 350, height: 300, marginTop: 10 }}
+                  />
+                )}
+              </>
+            ) : (
+              <div className="customer-info">
+                <p>
+                  <b>Linked Customer:</b> {customer.fullName}
+                </p>
+                <p>Current Points: {customer.points}</p>
+              </div>
+            )}
 <button onClick={startPromoScanner}>🎟️ Scan Promo QR</button>
 
 {showPromoScanner && (
@@ -753,24 +863,7 @@ const placeOrder = async () => {
 )}
 
 
-            {!customer ? (
-              <>
-                <button onClick={startScanner}>📷 Scan QR for Points</button>
-                {showScanner && (
-                  <div
-                    id="reader"
-                    style={{ width: 350, height: 300, marginTop: 10 }}
-                  />
-                )}
-              </>
-            ) : (
-              <div className="customer-info">
-                <p>
-                  <b>Linked Customer:</b> {customer.fullName}
-                </p>
-                <p>Current Points: {customer.points}</p>
-              </div>
-            )}
+            
 
             <button onClick={startWalletScanner} style={{ marginTop: 10 }}>
               📱 Scan QR for Pay Wallet
@@ -808,7 +901,49 @@ const placeOrder = async () => {
               🧾 Place Order
             </button>
           </div>
+          <div className="columns">
+  <h3>Non-App Customer</h3>
+
+  {/* Manual Mobile Input */}
+  <input
+    type="text"
+    placeholder="Enter mobile number"
+    value={mobileSearch}
+    onChange={(e) => setMobileSearch(e.target.value)}
+  />
+  <button onClick={searchCustomerByMobile}>🔍 Search</button>
+
+  {/* QR Scan */}
+  <button onClick={startNonAppScanner}>📷 Scan QR</button>
+  {showNonAppScanner && (
+    <div id="nonapp-reader" style={{ width: 350, height: 300, marginTop: 10 }} />
+  )}
+
+  {/* Status */}
+  {searchStatus && <p style={{ marginTop: 5 }}>{searchStatus}</p>}
+
+  {/* Customer Info + Link Button */}
+  {nonAppCustomer && (
+    <div style={{ marginTop: 10, border: "1px solid #ccc", padding: 10 }}>
+      <p><b>Name:</b> {nonAppCustomer.fullName}</p>
+      <p><b>Mobile:</b> {nonAppCustomer.mobile}</p>
+      <p><b>Points:</b> {nonAppCustomer.points}</p>
+      <button
+        onClick={() => {
+          setCustomer(nonAppCustomer); // Link to order
+          setNonAppCustomer(null);
+          setMobileSearch("");
+          setSearchStatus(null);
+        }}
+      >
+        🔗 Link Customer
+      </button>
+    </div>
+  )}
+</div>
         </div>
+
+        
 
         {/* RECENT ORDERS */}
         <div className="column" style={{ marginTop: 20 }}>

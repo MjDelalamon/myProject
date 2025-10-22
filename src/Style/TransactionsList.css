@@ -73,6 +73,30 @@
   margin-top: 30px;
 }
 
+.table-wrapper {
+  max-height: 500px; /* adjust height as needed */
+  overflow-y: auto;   /* vertical scroll */
+  overflow-x: auto;   /* keep horizontal scroll */
+  margin-top: 20px;
+}
+
+/* Sticky header for better UX */
+.transactions-table th {
+  position: sticky;
+  top: 0;
+  background-color: #efebe9;
+  z-index: 1;
+}
+
+/* Total sales display */
+.total-sales {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 10px 0;
+  color: #4b2e05;
+}
+
+
 /* Table wrapper for horizontal scroll */
 .table-wrapper {
   overflow-x: auto;

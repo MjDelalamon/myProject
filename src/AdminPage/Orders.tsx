@@ -24,7 +24,7 @@ type Order = {
   date: string;
   amount: number;
   status: "Pending" | "Completed" | "Canceled";
-  items: any[]; // full items array
+  items: any[];
   paymentMethod: string;
   paidByWallet?: boolean;
   pointsEarned?: number;
@@ -37,19 +37,24 @@ const Orders: React.FC = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [filteredCustomer, setFilteredCustomer] = useState<string | null>(null);
 
-  // new: selected order for details modal
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"Pending" | "Completed">("Pending");
+
+  const filteredOrders = orders.filter((order) => order.status === statusFilter);
+
+  // Payment modal states
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentChoice, setPaymentChoice] = useState<"Cash" | "Wallet" | "Mix" | null>(null);
+  const [pointsToUse, setPointsToUse] = useState<number>(0);
 
   const fetchOrders = async (filterEmail: string | null = null) => {
     try {
       setLoading(true);
       let querySnapshot;
       if (filterEmail) {
-        const q = query(
-          collection(db, "orders"),
-          where("customerId", "==", filterEmail)
-        );
+        const q = query(collection(db, "orders"), where("customerId", "==", filterEmail));
         querySnapshot = await getDocs(q);
       } else {
         querySnapshot = await getDocs(collection(db, "orders"));
@@ -57,7 +62,6 @@ const Orders: React.FC = () => {
 
       const fetchedOrders: Order[] = querySnapshot.docs.map((docSnap) => {
         const data = docSnap.data();
-        // placedAt may be timestamp or string
         const placedAt = data.placedAt || data.date || "";
         let formattedDate = "";
         if (placedAt?.toDate) {
@@ -65,22 +69,16 @@ const Orders: React.FC = () => {
         } else if (typeof placedAt === "string") {
           formattedDate = placedAt.split("T")[0];
         }
-
-        // items array
         const items = Array.isArray(data.items) ? data.items : [];
-
-        // payment method inference
         const paymentMethod = data.paidByWallet
           ? "Wallet"
-          : data.paymentMethod ||
-            (data.type === "points-used" ? "Points" : "Cash");
+          : data.paymentMethod || (data.type === "points-used" ? "Points" : "Cash");
 
         return {
           id: docSnap.id,
           customerEmail: data.customerId || "N/A",
           date: formattedDate,
           amount: data.subtotal || data.total || data.amount || 0,
-
           status: data.status || "Pending",
           items,
           paymentMethod,
@@ -101,20 +99,9 @@ const Orders: React.FC = () => {
     fetchOrders();
   }, []);
 
-  // new helper: create transaction documents (global & customer subcollection)
   const createTransactionRecords = async ({
-  customerEmail,
-  customerName, // new
-  orderId,
-  amount,
-  paymentMethod,
-  type,
-  status,
-  date,
-  items,
-}: any) => {
-  // Global transaction document
-  await addDoc(collection(db, "transactions"), {
+    customerEmail,
+    customerName,
     orderId,
     amount,
     paymentMethod,
@@ -122,25 +109,69 @@ const Orders: React.FC = () => {
     status,
     date,
     items,
-    customerId: customerEmail,
-    fullName: customerName, // store full name
-  });
+  }: any) => {
+    await addDoc(collection(db, "transactions"), {
+      orderId,
+      amount,
+      paymentMethod,
+      type,
+      status,
+      date,
+      items,
+      customerId: customerEmail,
+      fullName: customerName,
+    });
+    await addDoc(collection(db, "customers", customerEmail, "transactions"), {
+      orderId,
+      amount,
+      paymentMethod,
+      type,
+      status,
+      date,
+      items,
+      customerId: customerEmail,
+      fullName: customerName,
+    });
+  };
 
-  // Customer's subcollection
-  await addDoc(collection(db, "customers", customerEmail, "transactions"), {
-    orderId,
-    amount,
-    paymentMethod,
-    type,
-    status,
-    date,
-    items,
-    customerId: customerEmail,
-    fullName: customerName, // store full name
-  });
-};
+  const completeOrderWithPoints = async (
+    order: Order,
+    fullName: string,
+    pointsUsed: number
+  ) => {
+    const customerRef = doc(db, "customers", order.customerEmail);
+    const customerSnap = await getDoc(customerRef);
+    const customerData = customerSnap.data();
 
-  // Complete order: mark Completed and create transaction records + update customer stats
+    await updateDoc(customerRef, {
+      points: (customerData.points || 0) - pointsUsed,
+      totalSpent: (customerData.totalSpent || 0) + order.amount,
+      updatedAt: serverTimestamp(),
+    });
+
+    await updateDoc(doc(db, "orders", order.id), {
+      status: "Completed",
+      paymentMethod: pointsUsed === order.amount ? "Points" : "Mix",
+      updatedAt: serverTimestamp(),
+    });
+
+    await createTransactionRecords({
+      customerEmail: order.customerEmail,
+      customerName: fullName,
+      orderId: order.id,
+      amount: order.amount,
+      paymentMethod: pointsUsed === order.amount ? "Points" : "Mix",
+      type: pointsUsed === order.amount ? "points-used" : "mixed-payment",
+      status: "Completed",
+      date: serverTimestamp(),
+      items: order.items,
+    });
+
+    await updateFavoriteCategory(order.customerEmail);
+    alert("✅ Order completed successfully.");
+    fetchOrders(filteredCustomer);
+  };
+
   const handleComplete = async (order: Order) => {
   try {
     const customerRef = doc(db, "customers", order.customerEmail);
@@ -153,92 +184,131 @@ const Orders: React.FC = () => {
 
     const customerData = customerSnap.data();
     const currentPoints = customerData.points || 0;
+    const walletBalance = customerData.wallet || 0;
     const orderCost = order.amount;
 
-    if (currentPoints < orderCost) {
-      alert("⚠️ Not enough points to complete this order!");
+    // If customer has enough points
+    if (currentPoints >= orderCost) {
+      await completeOrderWithPoints(order, customerData.fullName || "N/A", orderCost);
       return;
     }
 
-    // Deduct points and add to totalSpent
-    await updateDoc(customerRef, {
-      points: currentPoints - orderCost,
-      totalSpent: (customerData.totalSpent || 0) + orderCost,
-      updatedAt: serverTimestamp(),
-    });
+    // Open modal if not enough points
+    setPendingOrder(order);
+    setPointsToUse(currentPoints);
+    setShowPaymentModal(true);
 
-    // Mark order completed
-    await updateDoc(doc(db, "orders", order.id), {
-      status: "Completed",
-      paymentMethod: "Points",
-      updatedAt: serverTimestamp(),
-    });
-
-    // Create transaction records with customer full name
-    await createTransactionRecords({
-      customerEmail: order.customerEmail,
-      customerName: customerData.fullName || "N/A", // pass full name
-      orderId: order.id,
-      amount: order.amount,
-      paymentMethod: "Points",
-      type: "points-used",
-      status: "Completed",
-      date: serverTimestamp(),
-      items: order.items || [],
-    });
-    await updateFavoriteCategory(order.customerEmail);
-
-
-    alert("✅ Order completed and points deducted successfully.");
-    fetchOrders(filteredCustomer);
   } catch (error) {
     console.error("Error completing order:", error);
     alert("❌ Failed to complete order.");
   }
 };
 
+const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
+  if (!pendingOrder) return;
 
+  const customerRef = doc(db, "customers", pendingOrder.customerEmail);
+  const customerSnap = await getDoc(customerRef);
+  const customerData = customerSnap.data();
+  const customerName = customerData.fullName || "N/A";
 
+  const pointsBalance = customerData.points || 0;
+  const walletBalance = customerData.wallet || 0;
+  const orderCost = pendingOrder.amount;
 
-  // Delete order: remove order and related transactions (global and customer's subcollection)
-  const handleDelete = async (orderId: string, customerEmail: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this order and related transactions?"
-      )
-    )
+  let pointsUsed = Math.min(pointsBalance, orderCost);
+  let remainingAmount = orderCost - pointsUsed;
+
+  if (choice === "Cash") {
+    // Cash covers the remaining after points
+    await updateDoc(customerRef, {
+      points: pointsBalance - pointsUsed,
+      totalSpent: (customerData.totalSpent || 0) + orderCost,
+      updatedAt: serverTimestamp(),
+    });
+
+    await updateDoc(doc(db, "orders", pendingOrder.id), {
+      status: "Completed",
+      paymentMethod: pointsUsed > 0 ? "Points + Cash" : "Cash",
+      updatedAt: serverTimestamp(),
+    });
+
+    await createTransactionRecords({
+      customerEmail: pendingOrder.customerEmail,
+      customerName,
+      orderId: pendingOrder.id,
+      amount: orderCost,
+      paymentMethod: pointsUsed > 0 ? "Points + Cash" : "Cash",
+      type: pointsUsed > 0 ? "points-cash" : "cash",
+      status: "Completed",
+      date: serverTimestamp(),
+      items: pendingOrder.items,
+    });
+
+    alert(`✅ Order completed using ${pointsUsed} points + ₱${remainingAmount} cash.`);
+
+  } else if (choice === "Wallet") {
+    // Wallet covers the remaining after points
+    if (walletBalance < remainingAmount) {
+      alert("❌ Not enough wallet balance to complete payment!");
       return;
+    }
+
+    await updateDoc(customerRef, {
+      points: pointsBalance - pointsUsed,
+      wallet: walletBalance - remainingAmount,
+      totalSpent: (customerData.totalSpent || 0) + orderCost,
+      updatedAt: serverTimestamp(),
+    });
+
+    await updateDoc(doc(db, "orders", pendingOrder.id), {
+      status: "Completed",
+      paymentMethod: pointsUsed > 0 ? "Points + Wallet" : "Wallet",
+      paidByWallet: true,
+      updatedAt: serverTimestamp(),
+    });
+
+    await createTransactionRecords({
+      customerEmail: pendingOrder.customerEmail,
+      customerName,
+      orderId: pendingOrder.id,
+      amount: orderCost,
+      paymentMethod: pointsUsed > 0 ? "Points + Wallet" : "Wallet",
+      type: pointsUsed > 0 ? "points-wallet" : "wallet",
+      status: "Completed",
+      date: serverTimestamp(),
+      items: pendingOrder.items,
+    });
+
+    alert(`✅ Order completed using ${pointsUsed} points + ₱${remainingAmount} from wallet.`);
+  }
+
+  // Reset modal
+  setShowPaymentModal(false);
+  setPendingOrder(null);
+  fetchOrders(filteredCustomer);
+};
+
+
+  const handleDelete = async (orderId: string, customerEmail: string) => {
+    if (!confirm("Are you sure you want to delete this order and related transactions?")) return;
     try {
-      // delete order doc
       await deleteDoc(doc(db, "orders", orderId));
 
-      // delete global transactions where orderId == orderId
-      const q = query(
-        collection(db, "transactions"),
-        where("orderId", "==", orderId)
-      );
+      const q = query(collection(db, "transactions"), where("orderId", "==", orderId));
       const snap = await getDocs(q);
       for (const t of snap.docs) {
-        // delete items subcollection under transaction
-        const itemsSnap = await getDocs(
-          collection(db, "transactions", t.id, "items")
-        );
+        const itemsSnap = await getDocs(collection(db, "transactions", t.id, "items"));
         for (const it of itemsSnap.docs) {
           await deleteDoc(doc(db, "transactions", t.id, "items", it.id));
         }
         await deleteDoc(doc(db, "transactions", t.id));
       }
 
-      // delete customer's transactions with orderId
-      const q2 = query(
-        collection(db, "customers", customerEmail, "transactions"),
-        where("orderId", "==", orderId)
-      );
+      const q2 = query(collection(db, "customers", customerEmail, "transactions"), where("orderId", "==", orderId));
       const snap2 = await getDocs(q2);
       for (const t of snap2.docs) {
-        await deleteDoc(
-          doc(db, "customers", customerEmail, "transactions", t.id)
-        );
+        await deleteDoc(doc(db, "customers", customerEmail, "transactions", t.id));
       }
 
       alert("🗑️ Order and related transactions deleted successfully.");
@@ -247,16 +317,6 @@ const Orders: React.FC = () => {
       console.error("Error deleting order:", error);
       alert("Failed to delete order.");
     }
-  };
-
-  // View details
-  const openOrderDetails = (order: Order) => {
-    setSelectedOrder(order);
-    setShowOrderModal(true);
-  };
-  const closeOrderDetails = () => {
-    setSelectedOrder(null);
-    setShowOrderModal(false);
   };
 
   const startScannerQR = () => {
@@ -291,145 +351,124 @@ const Orders: React.FC = () => {
 
   return (
     <>
-      <Sidebar />
-      <div className="p-6 ml-64">
-        <h2 className="text-2xl font-semibold mb-4">Redeem Orders</h2>
+  <Sidebar />
+  <div className="p-6 ml-64">
+    <h2 className="text-2xl font-semibold mb-4">Redeem Orders</h2>
 
-        <div className="flex items-center gap-3 mb-4">
-          <button
-            onClick={startScannerQR}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-          >
-            📷 Scan QR to Filter
-          </button>
-          {filteredCustomer && (
-            <button
-              className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400 transition"
-              onClick={() => {
-                setFilteredCustomer(null);
-                fetchOrders();
-              }}
-            >
-              🔁 Show All
-            </button>
-          )}
-        </div>
-
-        {showScanner && (
-          <div
-            id="reader"
-            className="w-[300px] h-[300px] border-2 border-gray-300 mb-4"
-          />
-        )}
-
-        {loading ? (
-          <p>Loading orders...</p>
-        ) : orders.length === 0 ? (
-          <p>No orders found.</p>
-        ) : (
-          <div className="orders-grid">
-  {orders.map((order) => {
-    const isFlipped = selectedOrder?.id === order.id;
-    return (
-      <div
-        key={order.id}
-        className={`flip-card ${isFlipped ? "flipped" : ""}`}
+    {/* Filters */}
+    <div className="flex items-center gap-3 mb-4">
+      <button
+        onClick={startScannerQR}
+        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
       >
-        <div className="flip-card-inner">
-          {/* Front */}
-          <div className="flip-card-front order-card">
-            <div>
-              <h3>🧾 Order ID: {order.id}</h3>
-              
-              <p><strong>Date:</strong> {order.date}</p>
-              <p><strong>Items:</strong>{" "}
-                {order.items && order.items.length
-                  ? order.items.map((i) => i.name).join(", ")
-                  : "N/A"}
-              </p>
-              <p><strong>Amount:</strong> ₱{order.amount}</p>
-              <span className={`order-status ${order.status.toLowerCase()}`}>
-                {order.status}
-              </span>
-            </div>
-            <div className="card-actions">
-              <button
-                className="view-btn"
-                onClick={() => setSelectedOrder(isFlipped ? null : order)}
-              >
-                View Details
-              </button>
-              {order.status !== "Completed" && (
-                <button
-                  className="complete-btn"
-                  onClick={() => handleComplete(order)}
-                >
-                  ✅ Complete
-                </button>
-              )}
-              <button
-                className="delete-btn"
-                onClick={() => handleDelete(order.id, order.customerEmail)}
-              >
-                🗑️ Delete
-              </button>
-            </div>
-          </div>
+        📷 Scan QR to Filter
+      </button>
+      {filteredCustomer && (
+        <button
+          className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400 transition"
+          onClick={() => {
+            setFilteredCustomer(null);
+            fetchOrders();
+          }}
+        >
+          🔁 Show All
+        </button>
+      )}
 
-          {/* Back */}
-          <div className="flip-card-back order-card">
-            <div>
-              <h3>Order Details — {order.id}</h3>
-              <p><strong>Customer:</strong> {order.customerEmail}</p>
-              <p><strong>Payment:</strong> Points</p>
-              <hr />
-              <p><strong>Instructions:</strong> {order.instructions}</p>
-              
-              <hr />
-              <h4>Items</h4>
-              <table className="items-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Qty</th>
-                    <th>Price</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.items.map((it, idx) => (
-                    <tr key={idx}>
-                      <td>{it.name || "N/A"}</td>
-                      <td>{it.category || "N/A"}</td>
-                      <td>{it.qty}</td>
-                      <td>₱{Number(it.price).toFixed(2)}</td>
-                      <td>₱{(it.qty * Number(it.price)).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              
-            </div>
-            <div className="card-actions">
-              <button className="back-btn" onClick={() => setSelectedOrder(null)}>
-                🔙 Back
-              </button>
-            </div>
+      {/* Status Filter */}
+      <select
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value as "Pending" | "Completed")}
+        className="px-3 py-2 border rounded-lg"
+      >
+        <option value="Pending">Pending</option>
+        <option value="Completed">Completed</option>
+      </select>
+    </div>
+
+    {showScanner && (
+      <div
+        id="reader"
+        className="w-[300px] h-[300px] border-2 border-gray-300 mb-4"
+      />
+    )}
+
+    {loading ? (
+      <p>Loading orders...</p>
+    ) : orders.filter(o => o.status === statusFilter).length === 0 ? (
+      <p>No orders found.</p>
+    ) : (
+      <div className="table-wrapper">
+        <table className="orders-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Items</th>
+              <th>Amount</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders
+              .filter(order => order.status === statusFilter)
+              .map((order) => (
+              <tr key={order.id}>
+                <td>{order.id}</td>
+                <td>{order.customerEmail}</td>
+                <td>{order.date}</td>
+                <td>{order.items.length ? order.items.map(i => i.name).join(", ") : "N/A"}</td>
+                <td>{order.amount.toFixed(2)} pts.</td>
+                <td>Points</td>
+                <td>
+                  <span className={`order-status ${order.status.toLowerCase()}`}>
+                    {order.status}
+                  </span>
+                </td>
+                <td>
+                  {order.status === "Pending" && (
+                    <button className="complete-btn" onClick={() => handleComplete(order)}> Complete</button>
+                  )}
+                  <button className="delete-btn" onClick={() => handleDelete(order.id, order.customerEmail)}> Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+
+    {/* Payment Modal */}
+    {showPaymentModal && pendingOrder && (
+      <div className="payment-modal">
+        <div className="payment-modal-content">
+          <h3>Not enough points</h3>
+          <p>
+            Customer has only {pointsToUse} points, order costs ₱{pendingOrder.amount}.<br/>
+            Choose how to pay:
+          </p>
+          <div className="payment-options">
+            <button onClick={() => handlePaymentChoice("Cash")}> Cash</button>
+            <button onClick={() => handlePaymentChoice("Wallet")}> Wallet</button>
           </div>
+          <button
+            className="cancel-btn"
+            onClick={() => {
+              setShowPaymentModal(false);
+              setPendingOrder(null);
+            }}
+          >
+            Cancel
+          </button>
         </div>
       </div>
-    );
-  })}
-</div>
+    )}
+  </div>
+</>
 
-        )}
-
-    
-
-
-      </div>
-    </>
   );
 };
 

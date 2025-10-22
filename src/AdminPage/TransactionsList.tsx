@@ -3,6 +3,7 @@ import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../Firebase/firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/SideBar";
+import "../Style/TransactionsList.css";
 
 type Item = {
   category: string;
@@ -43,7 +44,11 @@ const TransactionsList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<"Newest" | "Oldest">("Newest");
   const [searchTerm, setSearchTerm] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState<"All" | "Points" | "Wallet"| "Over the Counter">("All");
+  const [paymentFilter, setPaymentFilter] = useState<
+    "All" | "Points" | "Wallet" | "Over the Counter"
+  >("All");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -95,14 +100,24 @@ const TransactionsList: React.FC = () => {
       const matchesSearch =
         t.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.customerId.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesPayment =
         paymentFilter === "All" || t.paymentMethod === paymentFilter;
-      return matchesSearch && matchesPayment;
+
+      const matchesDate =
+        (!startDate || t.rawDate >= new Date(startDate)) &&
+        (!endDate || t.rawDate <= new Date(endDate));
+
+      return matchesSearch && matchesPayment && matchesDate;
     });
-  }, [sortedTransactions, searchTerm, paymentFilter]);
+  }, [sortedTransactions, searchTerm, paymentFilter, startDate, endDate]);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
+
+  const totalSales = useMemo(() => {
+    return filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+  }, [filteredTransactions]);
 
   return (
     <>
@@ -111,8 +126,6 @@ const TransactionsList: React.FC = () => {
         <h2 className="transactions-header">Transactions</h2>
 
         <div className="controls">
-          
-
           <input
             type="text"
             placeholder="Search by customer or ID..."
@@ -127,11 +140,25 @@ const TransactionsList: React.FC = () => {
             onChange={(e) => setPaymentFilter(e.target.value as any)}
           >
             <option value="All">All Payment Methods</option>
-            
             <option value="Wallet">Wallet</option>
             <option value="Points">Points</option>
-            <option value="Over the Counter">Over the Counter</option>  
+            <option value="Over the Counter">Over the Counter</option>
           </select>
+
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+
+        <div className="total-sales">
+          <strong>Total Sales: </strong> {formatCurrency(totalSales)}
         </div>
 
         {loading ? (
@@ -142,49 +169,51 @@ const TransactionsList: React.FC = () => {
           <div className="table-wrapper">
             <table className="transactions-table">
               <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Customer ID</th>
-                  <th>Amount</th>
-                  <th>Payment Method</th>
-                  <th>Date</th>
-                  <th>Items</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTransactions.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => navigate(`/transaction/${item.id}`)}
-                  >
-                    <td>{item.fullName}</td>
-                    <td>{item.customerId}</td>
-                    <td>{formatCurrency(item.amount)}</td>
-                    <td
-                      className={`payment-method ${
-                        item.paymentMethod === "Cash" ? "cash" : "wallet"
-                      }`}
-                    >
-                      {item.paymentMethod}
-                    </td>
-                    <td>{item.date}</td>
-                    <td>
-  <ul style={{ paddingLeft: "15px", margin: 0 }}>
-    {item.items.map((itm, idx) => (
-      <li key={idx} style={{ marginBottom: "4px" }}>
-        <strong>{itm.name}</strong> {/* Item name */}
-        {itm.category && <span> — <em>{itm.category}</em></span>} {/* Category */}
-        <span> | Qty: {itm.qty}</span>
-        <span> | ₱{itm.price}</span>
-      </li>
-    ))}
-  </ul>
-</td>
+  <tr>
+    <th>Transaction ID</th>
+    <th>Customer</th>
+    
+    <th>Amount</th>
+    <th>Payment Method</th>
+    <th>Date</th>
+    <th>Items</th>
+  </tr>
+</thead>
+<tbody>
+  {filteredTransactions.map((item) => (
+    <tr key={item.id} onClick={() => navigate(`/transaction/${item.id}`)}>
+      <td>{item.id}</td>  {/* Transaction ID */}
+      <td>{item.fullName}</td>
+      
+      <td>{formatCurrency(item.amount)}</td>
+      <td
+        className={`payment-method ${
+          item.paymentMethod === "Points"
+            ? "Points"
+            : item.paymentMethod === "Wallet"
+            ? "wallet"
+            : "cash"
+        }`}
+      >
+        {item.paymentMethod}
+      </td>
+      <td>{item.date}</td>
+      <td>
+        <ul style={{ paddingLeft: "15px", margin: 0 }}>
+          {item.items.map((itm, idx) => (
+            <li key={idx} style={{ marginBottom: "4px" }}>
+              <strong>{itm.name}</strong>
+              {itm.category && <span> — <em>{itm.category}</em></span>}
+              <span> | Qty: {itm.qty}</span>
+              <span> | ₱{itm.price}</span>
+            </li>
+          ))}
+        </ul>
+      </td>
+    </tr>
+  ))}
+</tbody>
 
-
-                  </tr>
-                ))}
-              </tbody>
             </table>
           </div>
         )}

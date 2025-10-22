@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../components/SideBar";
+import "../Style/Promotion.css"
 import {
   collection,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
-  getDocs,
+  onSnapshot,
   serverTimestamp,
+  query,
+  orderBy,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "../Firebase/firebaseConfig";
 
@@ -15,11 +19,12 @@ interface Promotion {
   id: string;
   title: string;
   description: string;
-  price: number; // 💰 changed from discount → price
+  price: number;
   startDate: string;
   endDate: string;
   promoType: "global" | "personalized";
   applicableTiers: string[];
+  category?: string;
   createdAt?: any;
 }
 
@@ -28,27 +33,48 @@ function Promotion() {
   const [form, setForm] = useState<Partial<Promotion>>({
     promoType: "global",
     applicableTiers: [],
+    category: "",
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired">("all");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [isModalOpen, setIsModalOpen] = useState(false); // ✅ modal state
 
-  // 🔹 Load promotions from Firestore
+  // 🔹 Load promotions in real-time
   useEffect(() => {
-    const fetchPromotions = async () => {
-      const snapshot = await getDocs(collection(db, "promotions"));
-      const list: Promotion[] = snapshot.docs.map((docSnap) => ({
+    const q = query(collection(db, "promotions"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const promos = snapshot.docs.map((docSnap) => ({
         id: docSnap.id,
-        ...(docSnap.data() as Promotion),
-      }));
-      setPromotions(list);
-    };
-    fetchPromotions();
+        ...docSnap.data(),
+      })) as Promotion[];
+      setPromotions(promos);
+    });
+    return () => unsubscribe();
   }, []);
 
-  // 🔹 Handle input change
+  // 🔹 Load categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "menu"));
+        const categorySet = new Set<string>();
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.category) categorySet.add(data.category);
+        });
+        setCategories(Array.from(categorySet));
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -57,7 +83,6 @@ function Promotion() {
     }));
   };
 
-  // 🔹 Handle tier checkbox
   const handleTierChange = (tier: string) => {
     setForm((prev) => {
       const tiers = prev.applicableTiers || [];
@@ -67,115 +92,150 @@ function Promotion() {
     });
   };
 
-  // 🔹 Add or update promotion
   const handleSubmit = async () => {
-    if (
-      !form.title ||
-      !form.description ||
-      !form.price ||
-      !form.startDate ||
-      !form.endDate
-    ) {
-      alert("Please fill in all fields.");
+    if (!form.title || !form.description || !form.price || !form.startDate || !form.endDate) {
+      alert("Please fill in all required fields.");
       return;
     }
 
-    if (editingId) {
-      const ref = doc(db, "promotions", editingId);
-      await updateDoc(ref, { ...form });
-      setPromotions((prev) =>
-        prev.map((p) =>
-          p.id === editingId ? ({ ...p, ...form } as Promotion) : p
-        )
-      );
-      setEditingId(null);
-    } else {
-      const newDoc = await addDoc(collection(db, "promotions"), {
-        ...form,
-        createdAt: serverTimestamp(),
-      });
-      setPromotions((prev) => [
-        ...prev,
-        { id: newDoc.id, ...(form as Promotion) },
-      ]);
-    }
+    const promoData = { ...form, createdAt: serverTimestamp() };
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "promotions", editingId), promoData);
+        setEditingId(null);
+      } else {
+        await addDoc(collection(db, "promotions"), promoData);
+      }
 
-    setForm({ promoType: "global", applicableTiers: [] });
+      setForm({ promoType: "global", applicableTiers: [], category: "" });
+      setIsModalOpen(false); // ✅ close modal after submit
+    } catch (err) {
+      console.error("Error saving promotion:", err);
+    }
   };
 
-  // 🔹 Edit / Delete
   const handleEdit = (promo: Promotion) => {
     setForm(promo);
     setEditingId(promo.id);
+    setIsModalOpen(true); // ✅ open modal for edit
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteDoc(doc(db, "promotions", id));
-    setPromotions((prev) => prev.filter((p) => p.id !== id));
-  };
+  const handleDelete = async (id: string) => await deleteDoc(doc(db, "promotions", id));
 
-  // 🔹 Status display
-  const getStatus = (endDate: string) => {
-    const now = new Date();
-    const end = new Date(endDate);
-    return end >= now ? "🟢 Active" : "🔴 Expired";
-  };
+  const getStatus = (endDate: string) => (new Date(endDate) >= new Date() ? "active" : "expired");
+
+  const filteredPromos = promotions.filter((promo) => {
+    const matchesSearch =
+      promo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      promo.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const status = getStatus(promo.endDate);
+    const matchesStatus =
+      filterStatus === "all" ||
+      (filterStatus === "active" && status === "active") ||
+      (filterStatus === "expired" && status === "expired");
+    const matchesCategory = filterCategory === "all" || promo.category === filterCategory;
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
 
   return (
     <>
       <Sidebar />
-
       <div className="promotion-container">
-        {/* Form Section */}
-        <div className="promotion-form">
-          <h2>{editingId ? "Edit Promotion" : "Add Promotion"}</h2>
+        <div className="promo-header">
+          <h2>Current Promotions</h2>
+          <button className="add-btn" onClick={() => setIsModalOpen(true)}>
+            + Add Promotion
+          </button>
+        </div>
 
-          <div className="form-grid">
-            <input
-              type="text"
-              name="title"
-              placeholder="Promotion Title"
-              value={form.title || ""}
-              onChange={handleChange}
-            />
-            <input
-              type="number"
-              name="price"
-              placeholder="Promo Price (₱)"
-              value={form.price || ""}
-              onChange={handleChange}
-            />
-            <input
-              type="date"
-              name="startDate"
-              value={form.startDate || ""}
-              onChange={handleChange}
-            />
-            <input
-              type="date"
-              name="endDate"
-              value={form.endDate || ""}
-              onChange={handleChange}
-            />
-          </div>
+        {/* 🔍 Filters */}
+        <div className="filter-controls">
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)}>
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="expired">Expired</option>
+          </select>
+          <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+            <option value="all">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          {/* Promo Type */}
-          <div className="promo-type">
-            <label>Promo Type:</label>
-            <select
-              name="promoType"
-              value={form.promoType}
-              onChange={handleChange}
-            >
-              <option value="global">Global (for everyone or tiers)</option>
-              <option value="personalized">Personalized (1-time per user)</option>
-            </select>
-          </div>
+        {/* Promotion List */}
+        {filteredPromos.length === 0 ? (
+          <p>No promotions found.</p>
+        ) : (
+          <ul className="promo-list">
+            {filteredPromos.map((promo) => (
+              <li key={promo.id} className="promo-item">
+                <div className="promo-details">
+                  <h3>{promo.title}</h3>
+                  <p>{promo.description}</p>
+                  <p>Price: ₱{promo.price?.toFixed(2)}</p>
+                  <p>
+                    Type: <b>{promo.promoType}</b>{" "}
+                    {promo.applicableTiers?.length > 0 && `| Tiers: ${promo.applicableTiers.join(", ")}`}
+                  </p>
+                  {promo.category && (
+                    <p>
+                      Category: <b>{promo.category}</b>
+                    </p>
+                  )}
+                  <p className={`promo-status ${getStatus(promo.endDate)}`}>
+                    {promo.startDate} → {promo.endDate} |{" "}
+                    <b style={{ color: getStatus(promo.endDate) === "active" ? "green" : "red" }}>
+                      {getStatus(promo.endDate).toUpperCase()}
+                    </b>
+                  </p>
+                </div>
 
-          {/* Tier Selection */}
-          {form.promoType === "global" && (
-            <div className="tier-selection">
-              <label>Applicable Tiers:</label>
+                <div className="promo-actions">
+                  <button onClick={() => handleEdit(promo)}>Edit</button>
+                  <button onClick={() => handleDelete(promo.id)}>Delete</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Modal */}
+        {isModalOpen && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h2>{editingId ? "Edit Promotion" : "Add Promotion"}</h2>
+              <div className="promo-input-grid">
+                <input type="text" name="title" placeholder="Title" value={form.title || ""} onChange={handleChange} />
+                <input type="number" name="price" placeholder="Price (₱)" value={form.price || ""} onChange={handleChange} />
+                <input type="date" name="startDate" value={form.startDate || ""} onChange={handleChange} />
+                <input type="date" name="endDate" value={form.endDate || ""} onChange={handleChange} />
+              </div>
+              <div className="promo-type">
+                <label>Promo Type:</label>
+                <select name="promoType" value={form.promoType} onChange={handleChange}>
+                  <option value="global">Global (all tiers)</option>
+                  <option value="personalized">Personalized (category + tier)</option>
+                </select>
+              </div>
+              {form.promoType === "personalized" && (
+                <select name="category" value={form.category || ""} onChange={handleChange}>
+                  <option value="">Select Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              )}
               <div className="tier-options">
                 {["Bronze", "Silver", "Gold"].map((tier) => (
                   <label key={tier}>
@@ -188,63 +248,14 @@ function Promotion() {
                   </label>
                 ))}
               </div>
+              <textarea name="description" placeholder="Description" value={form.description || ""} onChange={handleChange} rows={3} />
+              <div className="modal-actions">
+                <button onClick={handleSubmit}>{editingId ? "Update" : "Add"}</button>
+                <button onClick={() => setIsModalOpen(false)}>Cancel</button>
+              </div>
             </div>
-          )}
-
-          <textarea
-            name="description"
-            placeholder="Description"
-            value={form.description || ""}
-            onChange={handleChange}
-            rows={3}
-          />
-
-          <button onClick={handleSubmit}>
-            {editingId ? "Update Promotion" : "Add Promotion"}
-          </button>
-        </div>
-
-        {/* Promotion List */}
-        <div className="promotion-list">
-          <h2>Current Promotions</h2>
-          {promotions.length === 0 ? (
-            <p>No promotions added yet.</p>
-          ) : (
-            <ul>
-              {promotions.map((promo) => (
-                <li key={promo.id} className="promotion-item">
-                  <div className="promo-details">
-                    <h3>{promo.title}</h3>
-                    <p>{promo.description}</p>
-                    <p>
-  Price:{" "}
-  <b>
-    ₱
-    {promo.price !== undefined && !isNaN(promo.price)
-      ? promo.price.toFixed(2)
-      : "0.00"}
-  </b>
-</p>
-
-                    <p>
-                      Type: <b>{promo.promoType}</b>{" "}
-                      {promo.applicableTiers?.length > 0 &&
-                        `| Tiers: ${promo.applicableTiers.join(", ")}`}
-                    </p>
-                    <p className="promo-status">
-                      {promo.startDate} → {promo.endDate} | Status:{" "}
-                      <b>{getStatus(promo.endDate)}</b>
-                    </p>
-                  </div>
-                  <div className="promo-actions">
-                    <button onClick={() => handleEdit(promo)}>Edit</button>
-                    <button onClick={() => handleDelete(promo.id)}>Delete</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </>
   );

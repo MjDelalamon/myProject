@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/SideBar";
 import { db } from "../Firebase/firebaseConfig";
+import "../Style/Menu.css";
 import {
   collection,
   addDoc,

@@ -1,20 +1,22 @@
+/* --- Container --- */
 .assisted-ordering {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  padding: 20px;
+  padding: 25px;
   background: #fffdf9;
-  border-radius: 12px;
+  border-radius: 14px;
   max-width: 900px;
   margin: 20px auto 20px 280px; /* space for sidebar */
-  box-shadow: 0 4px 12px rgba(94, 67, 39, 0.1);
+  box-shadow: 0 6px 15px rgba(94, 67, 39, 0.12);
   border: 1px solid #e4d6c1;
 }
 
 /* --- Header --- */
 .assisted-ordering h2 {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   color: #3e2f1c;
   text-align: center;
   font-weight: 600;
+  font-size: 24px;
 }
 
 /* --- Layout --- */
@@ -27,11 +29,11 @@
 .column {
   flex: 1;
   background: #fffaf3;
-  padding: 15px;
+  padding: 18px;
   border: 1px solid #d9c8b4;
-  border-radius: 10px;
+  border-radius: 12px;
   min-width: 300px;
-  box-shadow: 0 2px 6px rgba(80, 60, 30, 0.05);
+  box-shadow: 0 3px 8px rgba(80, 60, 30, 0.08);
   overflow: hidden;
 }
 
@@ -39,7 +41,8 @@
   margin-top: 0;
   color: #5b4636;
   border-bottom: 2px solid #d9c8b4;
-  padding-bottom: 5px;
+  padding-bottom: 6px;
+  font-size: 18px;
 }
 
 /* --- Inputs, Selects, Buttons --- */
@@ -47,7 +50,7 @@ input,
 select,
 button {
   display: block;
-  margin: 10px 0;
+  margin: 8px 0;
   padding: 10px;
   font-size: 14px;
   border-radius: 6px;
@@ -57,12 +60,13 @@ button {
   box-sizing: border-box;
   color: #3e2f1c;
   background: #fff;
+  transition: all 0.25s ease;
 }
 
 input:focus,
 select:focus {
   border-color: #8b6b4f;
-  box-shadow: 0 0 6px rgba(139, 107, 79, 0.4);
+  box-shadow: 0 0 8px rgba(139, 107, 79, 0.3);
 }
 
 /* --- Dropdown unavailable --- */
@@ -74,30 +78,28 @@ select option[disabled] {
 
 /* --- Buttons --- */
 button {
-  background: #8b5e34 !important;
+  background: linear-gradient(145deg, #8b5e34, #a06b40);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
+  box-shadow: 0 4px 8px rgba(100, 70, 40, 0.15);
   transition: all 0.3s ease;
-  white-space: nowrap;
-  box-shadow: 0 3px 6px rgba(100, 70, 40, 0.15);
 }
 
 button:hover {
-  background: #6b4221 !important;
-  transform: translateY(-1px);
+  background: linear-gradient(145deg, #a06b40, #8b5e34);
+  transform: translateY(-2px);
 }
 
 button:active {
   transform: translateY(0);
-  background: #5a3417 !important;
+  background: linear-gradient(145deg, #6b4221, #8b5e34);
 }
 
-/* Disabled buttons */
 button:disabled {
-  background: #c6b4a3 !important;
+  background: #c6b4a3;
   color: #f0ebe6;
   cursor: not-allowed;
   box-shadow: none;
@@ -105,25 +107,26 @@ button:disabled {
 
 /* --- Customer Info --- */
 .customer-info {
-  margin-top: 10px;
+  margin-top: 12px;
   background: #fdf7f1;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 12px;
+  border-radius: 8px;
   border: 1px solid #e4d4c3;
 }
 
 .customer-info p {
   margin: 4px 0;
   color: #3e2f1c;
+  font-size: 14px;
 }
 
 /* --- Order Items --- */
 .order-item {
   display: grid;
   grid-template-columns: 1fr 80px 100px auto;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .order-item input {
@@ -135,77 +138,40 @@ button:disabled {
 
 /* --- Summary --- */
 .summary {
-  margin-top: 15px;
+  margin-top: 18px;
   border-top: 2px solid #d9c8b4;
-  padding-top: 10px;
+  padding-top: 12px;
 }
 
 .summary p {
   margin: 5px 0;
-  font-weight: bold;
+  font-weight: 600;
   color: #3e2f1c;
   text-align: right;
 }
 
-/* --- Dropdowns (Select Menus) --- */
+/* --- Dropdowns --- */
 select {
   appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
   background: #fffdf9 url("data:image/svg+xml;utf8,<svg fill='%235b4636' height='10' viewBox='0 0 24 24' width='10' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>") no-repeat right 12px center;
   background-size: 12px;
-  border: 1px solid #c2b09d;
-  border-radius: 6px;
   padding: 10px 35px 10px 10px;
   font-size: 14px;
-  color: #3e2f1c;
-  transition: all 0.3s ease;
   cursor: pointer;
 }
 
 select:hover {
   border-color: #8b6b4f;
-  box-shadow: 0 0 6px rgba(139, 107, 79, 0.3);
+  box-shadow: 0 0 6px rgba(139, 107, 79, 0.25);
 }
 
-select:focus {
-  border-color: #8b6b4f;
-  box-shadow: 0 0 6px rgba(139, 107, 79, 0.4);
-  outline: none;
-}
-
-/* --- Dropdown Options --- */
-select option {
-  background: #fffdf9;
-  color: #3e2f1c;
-  padding: 10px;
-}
-
-/* --- Unavailable (Disabled) Options --- */
-select option:disabled {
-  color: #a69b91;
-  background: #f5f0ea;
-  font-style: italic;
-}
-
-/* --- 📱 Mobile Adjustments --- */
-@media (max-width: 768px) {
-  select {
-    font-size: 13px;
-    padding: 8px 30px 8px 8px;
-    background-size: 10px;
-  }
-}
-
-
-/* --- 📱 Mobile Responsive --- */
+/* --- Mobile Adjustments --- */
 @media (max-width: 768px) {
   .assisted-ordering {
     padding: 15px;
     max-width: 100%;
     border-radius: 0;
     box-shadow: none;
-    border: none;
     margin: 0;
   }
 
@@ -246,7 +212,6 @@ select option:disabled {
   }
 }
 
-/* --- Extra Small Screens --- */
 @media (max-width: 480px) {
   .order-item {
     grid-template-columns: 1fr;
@@ -255,4 +220,28 @@ select option:disabled {
   .summary {
     font-size: 13px;
   }
+}
+
+/* --- Modal / Scanner containers --- */
+#reader, #wallet-reader, #promo-reader, #nonapp-reader {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 350px;
+  height: 300px;
+  border: 2px solid #d9c8b4;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(80, 60, 30, 0.1);
+}
+
+/* --- Promo / Confirm container --- */
+.confirm-promo {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 15px;
+  background: #fff8dc;
+}
+
+.confirm-promo button {
+  margin-right: 10px;
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import Sidebar from "../components/SideBar";
 import { db } from "../Firebase/firebaseConfig";
+import "../Style/Wallet.css";
 import {
   collection,
   query,

@@ -13,18 +13,19 @@ import SidebarStaff from "./components/SideBarStaff";
 import TakeOrder from "./StaffPage/TakeOrder";
 import TransactionsList from "./AdminPage/TransactionsList";
 
-import "./Style/Dashboard.css";
+
+
 import "./Style/App.css";
 import "./Style/index.css";
-import "./Style/intro.css";
-import "./Style/sideBar.css";
-import "./Style/Customer.css";
-import "./Style/TransactionsList.css"
 
-import "./Style/Promotion.css"
-import "./Style/Menu.css";
-import "./Style/Wallet.css";
-import "./Style/TakeOrder.css";
+import "./Style/sideBar.css";
+
+
+
+
+
+
+
 
 function App() {
   return (
@@ -43,6 +44,8 @@ function App() {
       <Route path="/menu" element={<Menu />} />
       <Route path="/wallet" element={<WalletSystem />} />
       <Route path="/take-order" element={<TakeOrder />} />
+      
+      
       </Routes>
   );
 }

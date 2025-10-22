@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import "./Style/Intro.css"; // Import your external CSS file
 
+import "./Style/intro.css";
 function Intro() {
   return (
     <div className="intro-container">
