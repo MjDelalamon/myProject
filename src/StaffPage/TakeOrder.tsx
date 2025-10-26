@@ -16,7 +16,6 @@ import {
   query,
 } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
-import { collection as fbCollection } from "firebase/firestore";
 import "../Style/TakeOrder.css";
 
 // ✅ Firebase Config
@@ -56,6 +55,8 @@ interface Customer {
   points?: number;
   wallet?: number;
   totalSpent?: number;
+  favoriteCategory?: string;
+  tier?: string;
   logs?: any[];
 }
 
@@ -69,8 +70,6 @@ interface Order {
   placedAt: string;
   paidByWallet: boolean;
 }
-
-
 
 export default function TakeOrderWithQR() {
   const [items, setItems] = useState<OrderItem[]>([
@@ -86,96 +85,94 @@ export default function TakeOrderWithQR() {
   const [walletCustomer, setWalletCustomer] = useState<Customer | null>(null);
   const [showWalletScanner, setShowWalletScanner] = useState(false);
   const [showPromoScanner, setShowPromoScanner] = useState(false);
-const [promoScanResult, setPromoScanResult] = useState<string | null>(null);
-const [promoStatus, setPromoStatus] = useState<string | null>(null);
-const [pendingPromo, setPendingPromo] = useState<any>(null);
-const [isConfirmVisible, setIsConfirmVisible] = useState(false);
-// ✅ Add at the top with useState
-// 🔹 State
-const [mobileSearch, setMobileSearch] = useState("");
-// 🔹 State
 
-const [nonAppCustomer, setNonAppCustomer] = useState<Customer | null>(null);
-const [searchStatus, setSearchStatus] = useState<string | null>(null);
-const [showNonAppScanner, setShowNonAppScanner] = useState(false);
+  const [promos, setPromos] = useState<any[]>([]); // list of all promos
+const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null); // selected from dropdown
 
-// 🔹 Search by mobile manually
-// 🔹 Search by mobile manually
-const searchCustomerByMobile = async () => {
+
+  const [showPointsScanner, setShowPointsScanner] = useState(false);
+  const [pointsScanResult, setPointsScanResult] = useState<string | null>(null);
+  const [pointsCustomer, setPointsCustomer] = useState<Customer | null>(null);
+  const [promoScanResult, setPromoScanResult] = useState<string | null>(null);
+  const [promoStatus, setPromoStatus] = useState<string | null>(null);
+  const [pendingPromo, setPendingPromo] = useState<any>(null);
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+  const [promoDetails, setPromoDetails] = useState<any | null>(null);
+
+  // ✅ Add at the top with useState
+  // 🔹 State
+  const [mobileSearch, setMobileSearch] = useState("");
+  // 🔹 State
+
+  const [nonAppCustomer, setNonAppCustomer] = useState<Customer | null>(null);
+  const [searchStatus, setSearchStatus] = useState<string | null>(null);
+  const [showNonAppScanner, setShowNonAppScanner] = useState(false);
+
+
+  useEffect(() => {
+  if (!customer) return;
+
+  const fetchPromos = async () => {
+    try {
+      const promoCol = collection(db, "promotions");
+      const snap = await getDocs(promoCol);
+      const allPromos: any[] = [];
+
+      snap.forEach((docSnap) => {
+        allPromos.push({ promoId: docSnap.id, ...docSnap.data() });
+      });
+
+      // ✅ Filter promos based on eligibility
+      const eligiblePromos = allPromos.filter((promo) => {
+        const tierEligible = !promo.tier || promo.tier === customer.tier;
+        const categoryEligible =
+          !promo.favoriteCategory ||
+          promo.favoriteCategory === customer.favoriteCategory;
+        return tierEligible && categoryEligible;
+      });
+
+      setPromos(eligiblePromos);
+    } catch (err) {
+      console.error("Error fetching promos:", err);
+      setPromos([]);
+    }
+  };
+
+  fetchPromos();
+}, [customer]);
+
+
+  // 🔹 Search by mobile manually
+  const searchCustomerByMobile = async () => {
   if (!mobileSearch) return alert("Enter a mobile number to search.");
 
+  
+
   try {
-    const q = query(
-      collection(db, "customers"),
-      where("mobile", "==", mobileSearch)
-    );
+    const q = query(collection(db, "customers"), where("mobile", "==", mobileSearch));
     const snap = await getDocs(q);
 
     if (!snap.empty) {
       const docSnap = snap.docs[0];
       const data = docSnap.data() as Customer;
       setNonAppCustomer({ id: docSnap.id, ...data });
+      setCustomer({ id: docSnap.id, ...data }); // ✅ link the customer to show payment buttons
       setSearchStatus(`✅ Customer found: ${data.fullName}`);
     } else {
       setNonAppCustomer(null);
+      setCustomer(null);
       setSearchStatus("❌ No customer found with this mobile number.");
     }
   } catch (err) {
     console.error("Error searching customer:", err);
     setNonAppCustomer(null);
+    setCustomer(null);
     setSearchStatus("❌ Error occurred during search.");
   }
 };
 
-// 🔹 Scan QR for Non-App customer
-const startNonAppScanner = () => {
-  setShowNonAppScanner(true);
-
-  const scanner = new Html5QrcodeScanner(
-    "nonapp-reader",
-    { fps: 10, qrbox: { width: 250, height: 250 } },
-    false
-  );
-
-  scanner.render(
-    async (decodedText: string) => {
-      try {
-        // QR contains mobile number
-        const q = query(
-          collection(db, "customers"),
-          where("mobile", "==", decodedText)
-        );
-        const snap = await getDocs(q);
-
-        if (!snap.empty) {
-          const docSnap = snap.docs[0];
-          const data = docSnap.data() as Customer;
-          setNonAppCustomer({ id: docSnap.id, ...data });
-          setSearchStatus(`✅ Customer found: ${data.fullName}`);
-        } else {
-          setNonAppCustomer(null);
-          setSearchStatus("❌ Customer not found!");
-        }
-      } catch (err) {
-        console.error("Error fetching Non-App customer:", err);
-        setNonAppCustomer(null);
-        setSearchStatus("❌ Error fetching customer.");
-      }
-
-      await scanner.clear().catch(() => {});
-      setShowNonAppScanner(false);
-    },
-    (err) => console.warn(err)
-  );
-};
-
-
-
-
-
-
-
 // 🔹 Start Promo QR Scanner (for verifying claimed promotions)
+// 🔹 Start Promo QR Scanner
 const startPromoScanner = () => {
   setShowPromoScanner(true);
 
@@ -190,43 +187,50 @@ const startPromoScanner = () => {
       setPromoScanResult(decodedText);
 
       try {
-        try {
-  const data = JSON.parse(decodedText);
+        const data = JSON.parse(decodedText);
 
-  if (data.type !== "PROMO") {
-    setPromoStatus("❌ Invalid QR type.");
-    return;
-  }
+        // 🔸 Validate QR type
+        if (data.type !== "PROMO") {
+          setPromoStatus("❌ Invalid QR type.");
+          setPromoDetails(null);
+          return;
+        }
 
-  const promoId = data.promoId;
-  const email = data.email;
+        // 🔸 Validate customer
+        if (data.email !== customer.id) {
+          setPromoStatus("❌ Promo QR not applicable for this customer.");
+          setPromoDetails(null);
+          return;
+        }
 
-  const promoRef = doc(db, `customers/${email}/claimedPromos/${promoId}`);
-  const promoSnap = await getDoc(promoRef);
+        // 🔹 Get promo details from main promotions collection
+        const promoRef = doc(db, "promotions", data.promoId);
+        const promoSnap = await getDoc(promoRef);
 
-  if (!promoSnap.exists()) {
-    setPromoStatus("❌ Promo not found or invalid.");
-  } else {
-    const promoData = promoSnap.data();
+        if (!promoSnap.exists()) {
+          setPromoStatus("❌ Promo not found.");
+          setPromoDetails(null);
+          return;
+        }
 
-    if (promoData.isUsed) {
-      setPromoStatus("⚠️ Promo already redeemed.");
-    } else {
-      setPendingPromo({ ...promoData, promoId, email });
-      setIsConfirmVisible(true);
-      setPromoStatus("✅ Promo valid! Awaiting confirmation...");
-    }
-  }
-} catch (err) {
-  console.error("Error verifying promo:", err);
-  setPromoStatus("❌ Invalid QR format.");
-}
+        const promoData = promoSnap.data();
+
+        // ✅ Show promo details for verification
+        setPromoDetails(promoData);
+        setPendingPromo({
+          promoId: data.promoId,
+          email: data.email,
+        });
+        setIsConfirmVisible(true);
+        setPromoStatus("✅ Promo valid! Awaiting confirmation...");
 
       } catch (err) {
         console.error("Error verifying promo:", err);
-        setPromoStatus("❌ Error verifying promo.");
+        setPromoStatus("❌ Invalid QR format or verification error.");
+        setPromoDetails(null);
       }
 
+      // Stop scanner after successful read
       await scanner.clear().catch(() => {});
       setShowPromoScanner(false);
     },
@@ -237,37 +241,39 @@ const startPromoScanner = () => {
 
 
 
-  // 🔹 Start Wallet QR Scanner
-  const startWalletScanner = () => {
-    setShowWalletScanner(true);
-    const scanner = new Html5QrcodeScanner(
-      "wallet-reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
+  const startPointsScanner = () => {
+    setShowPointsScanner(true);
+    const scanner = new Html5QrcodeScanner("points-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
 
     scanner.render(
       async (decodedText: string) => {
-        setWalletScanResult(decodedText);
+        setPointsScanResult(decodedText);
         try {
           const ref = doc(db, "customers", decodedText);
           const snap = await getDoc(ref);
           if (snap.exists()) {
             const data = snap.data() as Omit<Customer, "id">;
-            setWalletCustomer({ id: decodedText, ...data });
+            setPointsCustomer({ id: decodedText, ...data });
           } else {
-            setWalletCustomer(null);
+            setPointsCustomer(null);
           }
         } catch {
-          setWalletCustomer(null);
+          setPointsCustomer(null);
         }
         await scanner.clear().catch(() => {});
-        setShowWalletScanner(false);
+        setShowPointsScanner(false);
       },
       (err: string) => console.warn(err)
     );
   };
 
+  // 
+  
+
+
+
+  // 🔹 Start Wallet QR Scanner
+ 
   // 🔹 Computations
   const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
   const total = +subtotal.toFixed(2);
@@ -301,9 +307,7 @@ const startPromoScanner = () => {
   };
 
   const updateItem = (id: number, key: keyof OrderItem, value: unknown) => {
-    setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, [key]: value } : it))
-    );
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, [key]: value } : it)));
   };
 
   const removeItem = (id: number) => {
@@ -317,11 +321,7 @@ const startPromoScanner = () => {
   // 🔹 QR Scanner for Customer
   const startScanner = () => {
     setShowScanner(true);
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
+    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
 
     scanner.render(
       async (decodedText: string) => {
@@ -345,190 +345,165 @@ const startPromoScanner = () => {
     );
   };
 
-  
-const redeemPromo = async (method: "wallet" | "counter") => {
-  if (!pendingPromo) return;
+  const redeemPromo = async (method: "wallet" | "counter") => {
+    if (!pendingPromo) return;
 
-  try {
-    const promoRef = doc(
-      db,
-      `customers/${pendingPromo.email}/claimedPromos/${pendingPromo.promoId}`
-    );
-    const promoSnap = await getDoc(promoRef);
-    const promoData = promoSnap.data();
+    try {
+      const promoRef = doc(db, `customers/${pendingPromo.email}/claimedPromos/${pendingPromo.promoId}`);
+      const promoSnap = await getDoc(promoRef);
+      const promoData = promoSnap.data();
 
-    if (!promoData) {
-      setPromoStatus("❌ Promo not found.");
-      return;
+      if (!promoData) {
+        setPromoStatus("❌ Promo not found.");
+        return;
+      }
+
+      const promoPrice = Number((promoData as any).price) || 0;
+      const earnedPoints = +(promoPrice * 0.05).toFixed(2);
+
+      const customerRef = doc(db, "customers", pendingPromo.email);
+      const customerSnap = await getDoc(customerRef);
+
+      if (!customerSnap.exists()) {
+        setPromoStatus("❌ Customer not found in database.");
+        return;
+      }
+
+      const customerData = customerSnap.data();
+      const walletBalance = Number(customerData.wallet || 0);
+      const currentPoints = Number(customerData.points || 0);
+
+      // 🔹 Wallet Redeem
+      if (method === "wallet") {
+        if (walletBalance < promoPrice) {
+          setPromoStatus(
+            `❌ Insufficient wallet balance. Available: ₱${walletBalance}, Required: ₱${promoPrice}`
+          );
+          return;
+        }
+
+        const newWallet = +(walletBalance - promoPrice).toFixed(2);
+        const newPoints = +(currentPoints + earnedPoints).toFixed(2);
+        const newTotalSpent = +(Number(customerData.totalSpent || 0) + promoPrice).toFixed(2);
+
+        await updateDoc(customerRef, {
+          wallet: newWallet,
+          points: newPoints,
+          totalSpent: newTotalSpent,
+        });
+
+        await addDoc(collection(db, "customers", pendingPromo.email, "transactions"), {
+          transactionId: `PROMO-${Date.now()}`,
+          promoTitle: (promoData as any).title || "Promo",
+          promoId: pendingPromo.promoId,
+          type: "promo-redemption",
+          method: "wallet",
+          amount: promoPrice,
+          earnedPoints,
+          status: "Completed",
+          redeemedAt: Timestamp.now(),
+        });
+
+        setPromoStatus(`🎉 Promo redeemed via Wallet! ₱${promoPrice} deducted. +${earnedPoints} points earned!`);
+      }
+
+      // 🔹 Counter Redeem
+      if (method === "counter") {
+        const newPoints = +(currentPoints + earnedPoints).toFixed(2);
+        const newTotalSpent = +(Number(customerData.totalSpent || 0) + promoPrice).toFixed(2);
+
+        await updateDoc(customerRef, {
+          points: newPoints,
+          totalSpent: newTotalSpent,
+        });
+
+        await addDoc(collection(db, "customers", pendingPromo.email, "transactions"), {
+          transactionId: `PROMO-${Date.now()}`,
+          promoTitle: (promoData as any).title || "Promo",
+          promoId: pendingPromo.promoId,
+          type: "promo-redemption",
+          method: "counter",
+          amount: promoPrice,
+          earnedPoints,
+          status: "Completed",
+          redeemedAt: Timestamp.now(),
+        });
+
+        setPromoStatus(`🎟️ Promo redeemed Over the Counter! +${earnedPoints} points earned!`);
+      }
+
+      // 🔹 Log globally and per-customer
+      const redeemedPromoData = {
+        promoId: pendingPromo.promoId,
+        email: pendingPromo.email,
+        title: (promoData as any).title || "",
+        price: promoPrice,
+        earnedPoints,
+        redeemedVia: method,
+        redeemedAt: Timestamp.now(),
+      };
+
+      // 🔹 Save to global collection
+      await addDoc(collection(db, "redeemedPromos"), redeemedPromoData);
+
+      // 🔹 Save to the customer's own collection
+      await addDoc(collection(db, `customers/${pendingPromo.email}/redeemedPromos`), redeemedPromoData);
+
+      await updateDoc(promoRef, { isUsed: true });
+
+      setPromoStatus("✅ Promo redeemed and marked as used!");
+    } catch (err) {
+      console.error("Error redeeming promo:", err);
+      setPromoStatus("❌ Error redeeming promo.");
     }
 
-    const promoPrice = Number(promoData.price) || 0;
-    const earnedPoints = +(promoPrice * 0.05).toFixed(2);
-
-    const customerRef = doc(db, "customers", pendingPromo.email);
-    const customerSnap = await getDoc(customerRef);
-
-    if (!customerSnap.exists()) {
-      setPromoStatus("❌ Customer not found in database.");
-      return;
-    }
-
-    const customerData = customerSnap.data();
-    const walletBalance = Number(customerData.wallet || 0);
-    const currentPoints = Number(customerData.points || 0);
-
-    // 🔹 Wallet Redeem
-    // 🔹 Wallet Redeem
-if (method === "wallet") {
-  if (walletBalance < promoPrice) {
-    setPromoStatus(
-      `❌ Insufficient wallet balance. Available: ₱${walletBalance}, Required: ₱${promoPrice}`
-    );
-    return;
-  }
-
-  const newWallet = +(walletBalance - promoPrice).toFixed(2);
-  const newPoints = +(currentPoints + earnedPoints).toFixed(2);
-  const newTotalSpent = +(Number(customerData.totalSpent || 0) + promoPrice).toFixed(2); // ✅ ADD THIS
-
-  await updateDoc(customerRef, {
-    wallet: newWallet,
-    points: newPoints,
-    totalSpent: newTotalSpent, // ✅ UPDATE
-  });
-
-  await addDoc(
-    fbCollection(db, "customers", pendingPromo.email, "transactions"),
-    {
-      transactionId: `PROMO-${Date.now()}`,
-      promoTitle: promoData.title,
-      promoId: pendingPromo.promoId,
-      type: "promo-redemption",
-      method: "wallet",
-      amount: promoPrice,
-      earnedPoints,
-      status: "Completed",
-      redeemedAt: Timestamp.now(),
-    }
-  );
-
-  setPromoStatus(
-    `🎉 Promo redeemed via Wallet! ₱${promoPrice} deducted. +${earnedPoints} points earned!`
-  );
-}
-
-// 🔹 Counter Redeem
-if (method === "counter") {
-  const newPoints = +(currentPoints + earnedPoints).toFixed(2);
-  const newTotalSpent = +(Number(customerData.totalSpent || 0) + promoPrice).toFixed(2); // ✅ ADD THIS
-
-  await updateDoc(customerRef, {
-    points: newPoints,
-    totalSpent: newTotalSpent, // ✅ UPDATE
-  });
-
-  await addDoc(
-    fbCollection(db, "customers", pendingPromo.email, "transactions"),
-    {
-      transactionId: `PROMO-${Date.now()}`,
-      promoTitle: promoData.title,
-      promoId: pendingPromo.promoId,
-      type: "promo-redemption",
-      method: "counter",
-      amount: promoPrice,
-      earnedPoints,
-      status: "Completed",
-      redeemedAt: Timestamp.now(),
-    }
-  );
-
-  setPromoStatus(
-    `🎟️ Promo redeemed Over the Counter! +${earnedPoints} points earned!`
-  );
-}
-
-
-    
-    // 🔹 Log globally and per-customer
-const redeemedPromoData = {
-  promoId: pendingPromo.promoId,
-  email: pendingPromo.email,
-  title: promoData.title,
-  price: promoPrice,
-  earnedPoints,
-  redeemedVia: method,
-  redeemedAt: Timestamp.now(),
-};
-
-// 🔹 Save to global collection
-await addDoc(collection(db, "redeemedPromos"), redeemedPromoData);
-
-// 🔹 Save to the customer's own collection
-await addDoc(
-  collection(db, `customers/${pendingPromo.email}/redeemedPromos`),
-  redeemedPromoData
-);
-  await updateDoc(promoRef, { isUsed: true });
-
-    setPromoStatus("✅ Promo redeemed and marked as used!");
-  } catch (err) {
-    console.error("Error redeeming promo:", err);
-    setPromoStatus("❌ Error redeeming promo.");
-  }
-
-  setPendingPromo(null);
-  setIsConfirmVisible(false);
-};
-
-
-
+    setPendingPromo(null);
+    setIsConfirmVisible(false);
+    setPromoDetails(null);
+  };
 
   // 🔹 Place Order
-const placeOrder = async () => {
-  if (items.length === 0) return alert("Add at least one item.");
+  const placeOrder = async () => {
+    if (items.length === 0) return alert("Add at least one item.");
 
-  const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10);
-  const timestamp = Timestamp.fromDate(now);
-  const transactionId = `ORD-${Date.now()}`;
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timestamp = Timestamp.fromDate(now);
+    const transactionId = `ORD-${Date.now()}`;
 
-  // 🏦 If Wallet Customer
-  if (walletCustomer) {
-    if ((walletCustomer.wallet || 0) < total) {
-      alert(
-        `❌ Insufficient wallet balance. Available: ₱${walletCustomer.wallet}, Required: ₱${total}`
-      );
-      return;
-    }
+    // 🏦 If Wallet Customer
+    if (walletCustomer) {
+      if ((walletCustomer.wallet || 0) < total) {
+        alert(`❌ Insufficient wallet balance. Available: ₱${walletCustomer.wallet}, Required: ₱${total}`);
+        return;
+      }
 
-    const ref = doc(db, "customers", walletCustomer.id);
-    const newWallet = +(Number(walletCustomer.wallet) - total).toFixed(2);
-    const newPoints = (walletCustomer.points || 0) + points;
-    const newTotalSpent = (walletCustomer.totalSpent || 0) + total;
+      const ref = doc(db, "customers", walletCustomer.id);
+      const newWallet = +(Number(walletCustomer.wallet) - total).toFixed(2);
+      const newPoints = +(Number(walletCustomer.points || 0) + points).toFixed(2);
+      const newTotalSpent = +(Number(walletCustomer.totalSpent || 0) + total).toFixed(2);
 
-    const logEntry = {
-      transactionId,
-      amount: total,
-      date: dateStr,
-      earnedPoints: points,
-      items,
-      type: "wallet",
-      method: "Wallet",
-      status: "Completed",
-      paymentMethod: "Wallet",
-    };
+      const logEntry = {
+        transactionId,
+        amount: total,
+        date: dateStr,
+        earnedPoints: points,
+        items,
+        type: "wallet",
+        method: "Wallet",
+        status: "Completed",
+        paymentMethod: "Wallet",
+      };
 
-    // 🔸 Update customer wallet, points, and totalSpent
-    await updateDoc(ref, {
-      wallet: newWallet,
-      points: +newPoints.toFixed(2),
-      totalSpent: +newTotalSpent.toFixed(2),
-    });
+      // 🔸 Update customer wallet, points, and totalSpent
+      await updateDoc(ref, {
+        wallet: newWallet,
+        points: +newPoints.toFixed(2),
+        totalSpent: +newTotalSpent.toFixed(2),
+      });
 
-    // 🔸 Save inside customer's subcollection
-    await addDoc(
-      fbCollection(db, "customers", walletCustomer.id, "transactions"),
-      {
+      // 🔸 Save inside customer's subcollection
+      await addDoc(collection(db, "customers", walletCustomer.id, "transactions"), {
         orderId: transactionId,
         amount: total,
         paymentMethod: "Wallet",
@@ -536,138 +511,333 @@ const placeOrder = async () => {
         status: "Completed",
         date: timestamp,
         items,
-      }
-    );
+      });
 
-    // 🔸 Also save in global `transactions`
+      // 🔸 Also save in global `transactions`
+      await addDoc(collection(db, "transactions"), {
+        customerId: walletCustomer.id,
+        fullName: walletCustomer.fullName,
+        orderId: transactionId,
+        amount: total,
+        paymentMethod: "Wallet",
+        type: "wallet",
+        status: "Completed",
+        date: timestamp,
+        items,
+      });
+      await updateFavoriteCategory(walletCustomer.id);
+      alert(`✅ Order placed! ₱${total} deducted from wallet. ${points} points added to ${walletCustomer.fullName}.`);
+
+      setOrders((prev) => [
+        {
+          id: transactionId,
+          items,
+          subtotal,
+          total,
+          pointsEarned: points,
+          customerId: walletCustomer.id,
+          placedAt: now.toISOString(),
+          paidByWallet: true,
+        },
+        ...prev,
+      ]);
+
+      setWalletCustomer({
+        ...walletCustomer,
+        wallet: newWallet,
+        points: +newPoints.toFixed(2),
+        logs: walletCustomer.logs ? [...walletCustomer.logs, logEntry] : [logEntry],
+      });
+
+      // Reset forms
+      setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
+      setCustomer(null);
+      setWalletScanResult(null);
+      setWalletCustomer(null);
+      return;
+    }
+
+    // 🧾 If Customer scanned via “Scan QR for Points” (Over the Counter)
+    if (customer) {
+      const ref = doc(db, "customers", customer.id);
+      const earnedPoints = +(subtotal * 0.05).toFixed(2);
+      const newPoints = +(Number(customer.points || 0) + earnedPoints).toFixed(2);
+      const newTotalSpent = +(Number(customer.totalSpent || 0) + total).toFixed(2);
+
+      await updateDoc(ref, {
+        points: newPoints,
+        totalSpent: +newTotalSpent.toFixed(2),
+      });
+
+      // 🔸 Save to customer's transactions
+      await addDoc(collection(db, "customers", customer.id, "transactions"), {
+        orderId: transactionId,
+        amount: total,
+        paymentMethod: "Over the Counter",
+        type: "points-earned",
+        status: "Completed",
+        date: timestamp,
+        items,
+      });
+
+      // 🔸 Also save globally
+      await addDoc(collection(db, "transactions"), {
+        customerId: customer.id,
+        fullName: customer.fullName,
+        orderId: transactionId,
+        amount: total,
+        paymentMethod: "Over the Counter",
+        type: "points-earned",
+        status: "Completed",
+        date: timestamp,
+        items,
+      });
+
+      await updateFavoriteCategory(customer.id);
+
+      alert(`✅ Order placed (Over the Counter)! ${earnedPoints} points added to ${customer.fullName}.`);
+
+      setOrders((prev) => [
+        {
+          id: transactionId,
+          items,
+          subtotal,
+          total,
+          pointsEarned: earnedPoints,
+          customerId: customer.id,
+          placedAt: now.toISOString(),
+          paidByWallet: false,
+        },
+        ...prev,
+      ]);
+
+      setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
+      setCustomer(null);
+      setWalletCustomer(null);
+      setWalletScanResult(null);
+      return;
+    }
+
+    // 🪙 If Points Payment Customer (pointsCustomer previously scanned)
+    if (pointsCustomer) {
+      const pointsValue = pointsCustomer.points || 0;
+      const totalPointsRequired = total; // 1 point = ₱1
+      if (pointsValue < totalPointsRequired) {
+        alert(`❌ Insufficient points. Available: ${pointsValue}, Required: ${totalPointsRequired}`);
+        return;
+      }
+
+      const newPoints = +(pointsValue - totalPointsRequired).toFixed(2);
+      const newTotalSpent = +(Number(pointsCustomer.totalSpent || 0) + total).toFixed(2);
+
+      const ref = doc(db, "customers", pointsCustomer.id);
+      await updateDoc(ref, {
+        points: newPoints,
+        totalSpent: +newTotalSpent.toFixed(2),
+      });
+
+      const orderId = `ORD-${Date.now()}`;
+      await addDoc(collection(db, "transactions"), {
+        customerId: pointsCustomer.id,
+        fullName: pointsCustomer.fullName,
+        orderId,
+        amount: total,
+        paymentMethod: "Points",
+        type: "points-payment",
+        status: "Completed",
+        date: Timestamp.now(),
+        items,
+        pointsEarned:0
+      });
+
+      await addDoc(collection(db, "customers", pointsCustomer.id, "transactions"), {
+        customerId: pointsCustomer.id,
+        fullName: pointsCustomer.fullName,
+        orderId,
+        amount: total,
+        paymentMethod: "Points",
+        type: "points-payment",
+        status: "Completed",
+        date: Timestamp.now(),
+        items,
+        pointsEarned: 0
+      });
+
+      await updateFavoriteCategory(pointsCustomer.id);
+
+      alert(`✅ Order placed! ${total} points deducted from ${pointsCustomer.fullName}.`);
+
+      setPointsCustomer(null);
+      setPointsScanResult(null);
+      setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
+      return;
+    }
+
+    // 🚶 Walk-in Customer (no linked customer)
     await addDoc(collection(db, "transactions"), {
-      customerId: walletCustomer.id,
-      fullName: walletCustomer.fullName,
+      customerId: "WALK-IN",
+      fullName: "Walk-in Customer",
       orderId: transactionId,
       amount: total,
-      paymentMethod: "Wallet",
-      type: "wallet",
+      paymentMethod: "Cash",
+      type: "walk-in",
       status: "Completed",
       date: timestamp,
       items,
     });
-    await updateFavoriteCategory(walletCustomer.id); // ✅ update favorite category here
-    alert(
-      `✅ Order placed! ₱${total} deducted from wallet. ${points} points added to ${walletCustomer.fullName}.`
-    );
 
-    setOrders((prev) => [
-      {
-        id: transactionId,
-        items,
-        subtotal,
-        total,
-        pointsEarned: points,
-        customerId: walletCustomer.id,
-        placedAt: now.toISOString(),
-        paidByWallet: true,
-      },
-      ...prev,
-    ]);
-
-    setWalletCustomer({
-      ...walletCustomer,
-      wallet: newWallet,
-      points: +newPoints.toFixed(2),
-      logs: walletCustomer.logs
-        ? [...walletCustomer.logs, logEntry]
-        : [logEntry],
-    });
-
-    // Reset forms
+    alert("✅ Order placed for Walk-in Customer (No points earned).");
     setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
-    setCustomer(null);
-    setWalletScanResult(null);
-    setWalletCustomer(null);
-    return;
-  }
+  };
 
-  // 🧾 If Customer scanned via “Scan QR for Points”
-  if (customer) {
+  // Handle paying over the counter for a linked customer (cash)
+  const handleCounterPayment = async () => {
+    if (items.length === 0 || items.every((it) => it.name === "")) {
+    return alert("❌ Add at least one item before proceeding with payment.");
+  }
+    if (!customer) return alert("No customer selected.");
     const ref = doc(db, "customers", customer.id);
     const earnedPoints = +(subtotal * 0.05).toFixed(2);
     const newPoints = +(Number(customer.points || 0) + earnedPoints).toFixed(2);
-    const newTotalSpent = (customer.totalSpent || 0) + total;
+    const newTotalSpent = +(Number(customer.totalSpent || 0) + total).toFixed(2);
 
     await updateDoc(ref, {
       points: newPoints,
       totalSpent: +newTotalSpent.toFixed(2),
     });
 
-    // 🔸 Save to customer's transactions
-    await addDoc(fbCollection(db, "customers", customer.id, "transactions"), {
-      orderId: transactionId,
+    const orderId = `ORD-${Date.now()}`;
+
+    await addDoc(collection(db, "customers", customer.id, "transactions"), {
+      orderId,
       amount: total,
       paymentMethod: "Over the Counter",
-      type: "points-earned",
+      type: "counter-payment",
       status: "Completed",
-      date: timestamp,
+      date: Timestamp.now(),
       items,
+      pointsEarned: points 
     });
 
-    // 🔸 Also save globally
     await addDoc(collection(db, "transactions"), {
       customerId: customer.id,
       fullName: customer.fullName,
-      orderId: transactionId,
+      orderId,
       amount: total,
       paymentMethod: "Over the Counter",
-      type: "points-earned",
+      type: "counter-payment",
       status: "Completed",
-      date: timestamp,
+      date: Timestamp.now(),
       items,
+      pointsEarned: points 
     });
 
     await updateFavoriteCategory(customer.id);
 
-
-    alert(
-      `✅ Order placed (Over the Counter)! ${earnedPoints} points added to ${customer.fullName}.`
-    );
-
-    setOrders((prev) => [
-      {
-        id: transactionId,
-        items,
-        subtotal,
-        total,
-        pointsEarned: earnedPoints,
-        customerId: customer.id,
-        placedAt: now.toISOString(),
-        paidByWallet: false,
-      },
-      ...prev,
-    ]);
-
+    alert(`✅ Paid Over the Counter. ${earnedPoints} points added to ${customer.fullName}.`);
+    setCustomer({ ...customer, points: newPoints });
     setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
-    setCustomer(null);
-    setWalletCustomer(null);
-    setWalletScanResult(null);
-    return;
+  };
+
+  const handlePointsPayment = async () => {
+    if (items.length === 0 || items.every((it) => it.name === "")) {
+    return alert("❌ Add at least one item before proceeding with payment.");
   }
+    if (!customer) return alert("No customer selected.");
+    if ((customer.points || 0) < total) return alert(`❌ Not enough points. Required: ${total}`);
 
-  // 🚶 Walk-in Customer
-  await addDoc(collection(db, "transactions"), {
-    customerId: "WALK-IN",
-    fullName: "Walk-in Customer",
-    orderId: transactionId,
-    amount: total,
-    paymentMethod: "Cash",
-    type: "walk-in",
-    status: "Completed",
-    date: timestamp,
-    items,
-  });
+    const ref = doc(db, "customers", customer.id);
+    const newPoints = +(Number(customer.points) - total).toFixed(2);
+    const newTotalSpent = +(Number(customer.totalSpent || 0) + total).toFixed(2);
 
-  alert("✅ Order placed for Walk-in Customer (No points earned).");
-  setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
-};
+    const orderId = `ORD-${Date.now()}`;
 
+    await updateDoc(ref, {
+      points: newPoints,
+      totalSpent: +newTotalSpent.toFixed(2),
+    });
+
+    await addDoc(collection(db, "transactions"), {
+      customerId: customer.id,
+      fullName: customer.fullName,
+      orderId,
+      amount: total,
+      paymentMethod: "Points",
+      status: "Completed",
+      date: Timestamp.now(),
+      items,
+      pointsEarned: points 
+    });
+
+    // also save under customer's transaction subcollection
+    await addDoc(collection(db, "customers", customer.id, "transactions"), {
+      customerId: customer.id,
+      fullName: customer.fullName,
+      orderId,
+      amount: total,
+      paymentMethod: "Points",
+      status: "Completed",
+      date: Timestamp.now(),
+      items,
+      pointsEarned: points 
+    });
+
+    alert(`✅ Paid using Points! ${total} points deducted.`);
+    setCustomer({ ...customer, points: newPoints });
+    setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
+  };
+
+  const handleWalletPayment = async () => {
+
+  if (items.length === 0 || items.every((it) => it.name === "")) {
+    return alert("❌ Add at least one item before proceeding with payment.");
+  }
+    if (!customer) return alert("No customer selected.");
+    if ((customer.wallet || 0) < total) return alert(`❌ Not enough wallet balance. Required: ₱${total}`);
+
+    const ref = doc(db, "customers", customer.id);
+    const newWallet = +(Number(customer.wallet) - total).toFixed(2);
+    const newPoints = +(Number(customer.points || 0) + points).toFixed(2);
+    const newTotalSpent = +(Number(customer.totalSpent || 0) + total).toFixed(2);
+
+    const orderId = `ORD-${Date.now()}`;
+
+    await updateDoc(ref, {
+      wallet: newWallet,
+      points: newPoints,
+      totalSpent: +newTotalSpent.toFixed(2),
+    });
+
+    await addDoc(collection(db, "transactions"), {
+      customerId: customer.id,
+      fullName: customer.fullName,
+      orderId,
+      amount: total,
+      paymentMethod: "Wallet",
+      status: "Completed",
+      date: Timestamp.now(),
+      items,
+      pointsEarned: points 
+    });
+
+    await addDoc(collection(db, "customers", customer.id, "transactions"), {
+      customerId: customer.id,
+      fullName: customer.fullName,
+      orderId,
+      amount: total,
+      paymentMethod: "Wallet",
+      status: "Completed",
+      date: Timestamp.now(),
+      items,
+      pointsEarned: points 
+    });
+
+    await updateFavoriteCategory(customer.id);
+
+    alert(`✅ Paid using Wallet! ₱${total} deducted. ${points} points earned.`);
+    setCustomer({ ...customer, wallet: newWallet, points: newPoints });
+    setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
+  };
 
   // ✅ UI
   return (
@@ -701,8 +871,7 @@ const placeOrder = async () => {
                       (m) =>
                         m.name === nameInput &&
                         (selectedCategory
-                          ? m.category.trim().toLowerCase() ===
-                            selectedCategory.trim().toLowerCase()
+                          ? m.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase()
                           : true)
                     );
                     if (selectedItem) {
@@ -712,52 +881,24 @@ const placeOrder = async () => {
                     } else {
                       updateItem(it.id, "name", nameInput);
                       updateItem(it.id, "price", 0);
-                      updateItem(
-                        it.id,
-                        "category",
-                        selectedCategory || "Uncategorized"
-                      );
+                      updateItem(it.id, "category", selectedCategory || "Uncategorized");
                     }
                   }}
                   disabled={!selectedCategory}
                 >
-                  <option value="">
-                    {selectedCategory
-                      ? "Select Item"
-                      : "Select a category first"}
-                  </option>
+                  <option value="">{selectedCategory ? "Select Item" : "Select a category first"}</option>
                   {selectedCategory &&
                     menuData
-                      .filter(
-                        (m) =>
-                          m.category.trim().toLowerCase() ===
-                          selectedCategory.trim().toLowerCase()
-                      )
+                      .filter((m) => m.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase())
                       .map((m) => (
-                        <option
-                          key={m.id}
-                          value={m.name}
-                          disabled={!m.availability}
-                        >
+                        <option key={m.id} value={m.name} disabled={!m.availability}>
                           {m.name} {m.availability ? "" : "(Unavailable)"}
                         </option>
                       ))}
                 </select>
 
-                <input
-                  type="number"
-                  value={it.qty}
-                  onChange={(e) =>
-                    updateItem(it.id, "qty", Number(e.target.value))
-                  }
-                  placeholder="Qty"
-                />
-                <input
-                  type="number"
-                  value={it.price}
-                  readOnly
-                  placeholder="Price"
-                />
+                <input type="number" value={it.qty} onChange={(e) => updateItem(it.id, "qty", Number(e.target.value))} placeholder="Qty" />
+                <input type="number" value={it.price} readOnly placeholder="Price" />
                 <button onClick={() => removeItem(it.id)}>✖</button>
               </div>
             ))}
@@ -769,9 +910,7 @@ const placeOrder = async () => {
               <ul>
                 {items.map((it, idx) => (
                   <li key={it.id || idx}>
-                    <b>{it.name || <i>No item selected</i>}</b> (
-                    {it.category || "—"}) × {it.qty} — ₱
-                    {(it.price * it.qty).toFixed(2)}
+                    <b>{it.name || <i>No item selected</i>}</b> ({it.category || "—"}) × {it.qty} — ₱{(it.price * it.qty).toFixed(2)}
                   </li>
                 ))}
               </ul>
@@ -787,163 +926,62 @@ const placeOrder = async () => {
           {/* RIGHT COLUMN */}
           <div className="column">
             <h3>Action</h3>
+            <hr style={{ margin: "20px 0" }} />
 
-            
+            {/* STEP 1 — Search by Mobile Number */}
+            <div>
+              <input type="text" placeholder="Enter mobile number" value={mobileSearch} onChange={(e) => setMobileSearch(e.target.value)} />
+              <button onClick={searchCustomerByMobile}>🔍 Search</button>
+            </div>
 
+            {/* STEP 2 — Optional Scan QR for Customer */}
+            <button onClick={startScanner} style={{ marginTop: 10 }}>
+              📷 Scan Customer QR (Optional)
+            </button>
+            {showScanner && <div id="reader" style={{ width: 350, height: 300, marginTop: 10 }} />}
 
-
- <hr style={{ margin: "20px 0" }} />
-           
-
-            
-{!customer ? (
-              <>
-                <button onClick={startScanner}>📷 Scan QR for Points</button>
-                {showScanner && (
-                  <div
-                    id="reader"
-                    style={{ width: 350, height: 300, marginTop: 10 }}
-                  />
-                )}
-              </>
-            ) : (
-              <div className="customer-info">
+            {/* STEP 3 — Show Customer Details */}
+            {customer && (
+              <div style={{ marginTop: 15, padding: 15, border: "1px solid #ccc", borderRadius: 8, background: "#fafafa" }}>
+                
                 <p>
-                  <b>Linked Customer:</b> {customer.fullName}
+                  <b>Name:</b> {customer.fullName}
                 </p>
-                <p>Current Points: {customer.points}</p>
+                <p>
+                  <b>Tier:</b> {customer.tier || "—"}
+                </p>
+                <p>
+                  <b>Points:</b> {customer.points ?? 0}
+                </p>
+                <p>
+                  <b>Wallet:</b> ₱{customer.wallet ?? 0}
+                </p>
               </div>
             )}
-<button onClick={startPromoScanner}>🎟️ Scan Promo QR</button>
-
-{showPromoScanner && (
-  <div id="promo-reader" style={{ width: 350, height: 300, marginTop: 10 }} />
-)}
-
-{isConfirmVisible && pendingPromo && (
-  <div
-    style={{
-      border: "1px solid #ccc",
-      borderRadius: 10,
-      padding: 20,
-      marginTop: 15,
-      background: "#fff8dc",
-    }}
-  >
-    <h3>Confirm Promo Redemption</h3>
-    <p><b>Promo:</b> {pendingPromo.title}</p>
-    <p><b>Customer:</b> {pendingPromo.email}</p>
-
-    <div style={{ marginTop: 15 }}>
-      <button
-        onClick={() => redeemPromo("wallet")}
-        style={{ marginRight: 10 }}
-      >
-        💳 Redeem via Wallet
-      </button>
-
-      <button
-        onClick={() => redeemPromo("counter")}
-        style={{ marginRight: 10 }}
-      >
-        💵 Redeem Over the Counter
-      </button>
-
-      <button onClick={() => setIsConfirmVisible(false)}>❌ Cancel</button>
-    </div>
-  </div>
-)}
-
-
-{promoScanResult && (
-  <div style={{ marginTop: 10 }}>
-    <b>Scanned QR:</b> {promoScanResult}
-    <p style={{ marginTop: 5 }}>{promoStatus}</p>
-  </div>
-)}
-
 
             
 
-            <button onClick={startWalletScanner} style={{ marginTop: 10 }}>
-              📱 Scan QR for Pay Wallet
-            </button>
-            {showWalletScanner && (
-              <div
-                id="wallet-reader"
-                style={{ width: 350, height: 300, marginTop: 10 }}
-              />
-            )}
-            {walletScanResult && (
-              <div style={{ marginTop: 10 }}>
-                <b>Wallet QR Result:</b>
-                {walletCustomer ? (
-                  <div>
-                    <div>
-                      <b>Full Name:</b> {walletCustomer.fullName}
-                    </div>
-                    <div>
-                      <b>Mobile:</b> {walletCustomer.mobile}
-                    </div>
-                    <div>
-                      <b>Wallet Balance:</b> {walletCustomer.wallet}
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <i>No customer found for this QR.</i>
-                  </div>
-                )}
+            {/* STEP 4 — Payment Options */}
+            {customer && (
+              <div style={{ marginTop: 15 }}>
+                <button onClick={handlePointsPayment} style={{ marginLeft: 10, background:"#ffca61ff",color:"black"  }}>Pay using Points</button>
+                <button onClick={handleWalletPayment} style={{ marginLeft: 10, background:"#0ff4e4ff",color:"black"  }}>
+                   Pay using Wallet
+                </button>
+                <button onClick={handleCounterPayment} style={{ marginLeft: 10, background: "#8fff7dff",color:"black"  }}>
+                   Pay Over the Counter
+                </button>
               </div>
             )}
 
-            <button onClick={placeOrder} style={{ marginTop: 20 }}>
-              🧾 Place Order
-            </button>
+            {/* STEP 5 — Scan Promo QR (ONLY if customer exists) */}
+
+
+
+
+            {searchStatus && <p style={{ marginTop: 10 }}>{searchStatus}</p>}
           </div>
-          <div className="columns">
-  <h3>Non-App Customer</h3>
-
-  {/* Manual Mobile Input */}
-  <input
-    type="text"
-    placeholder="Enter mobile number"
-    value={mobileSearch}
-    onChange={(e) => setMobileSearch(e.target.value)}
-  />
-  <button onClick={searchCustomerByMobile}>🔍 Search</button>
-
-  {/* QR Scan */}
-  <button onClick={startNonAppScanner}>📷 Scan QR</button>
-  {showNonAppScanner && (
-    <div id="nonapp-reader" style={{ width: 350, height: 300, marginTop: 10 }} />
-  )}
-
-  {/* Status */}
-  {searchStatus && <p style={{ marginTop: 5 }}>{searchStatus}</p>}
-
-  {/* Customer Info + Link Button */}
-  {nonAppCustomer && (
-    <div style={{ marginTop: 10, border: "1px solid #ccc", padding: 10 }}>
-      <p><b>Name:</b> {nonAppCustomer.fullName}</p>
-      <p><b>Mobile:</b> {nonAppCustomer.mobile}</p>
-      <p><b>Points:</b> {nonAppCustomer.points}</p>
-      <button
-        onClick={() => {
-          setCustomer(nonAppCustomer); // Link to order
-          setNonAppCustomer(null);
-          setMobileSearch("");
-          setSearchStatus(null);
-        }}
-      >
-        🔗 Link Customer
-      </button>
-    </div>
-  )}
-</div>
         </div>
-
-        
 
         {/* RECENT ORDERS */}
         <div className="column" style={{ marginTop: 20 }}>

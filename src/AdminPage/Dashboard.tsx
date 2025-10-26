@@ -109,6 +109,7 @@ function Dashboard() {
 
           {/* 📈 Total Sales Chart */}
           <div className="graph-card">
+            
             <h3>Total Sales Overview: <strong>{totalSales}</strong></h3>
             <ResponsiveContainer width="100%" height={260}>
               <LineChart
@@ -163,7 +164,7 @@ function Dashboard() {
 
           {/* 🏆 Top Selling Categories */}
           <div className="graph-card">
-            <h3>Top Selling Categories</h3>
+            <h3>Top Selling Categories: {filter}</h3>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
                 layout="vertical"

@@ -12,6 +12,7 @@ import WalletSystem from "./AdminPage/Wallet";
 import SidebarStaff from "./components/SideBarStaff";
 import TakeOrder from "./StaffPage/TakeOrder";
 import TransactionsList from "./AdminPage/TransactionsList";
+import PromoRedemption from "./StaffPage/PromoRedemption";
 
 
 
@@ -44,6 +45,7 @@ function App() {
       <Route path="/menu" element={<Menu />} />
       <Route path="/wallet" element={<WalletSystem />} />
       <Route path="/take-order" element={<TakeOrder />} />
+      <Route path="/promo-redemption" element={<PromoRedemption />} />
       
       
       </Routes>

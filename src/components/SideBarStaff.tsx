@@ -22,7 +22,7 @@ function SidebarStaff() {
   <div className="sidebar-separator"></div>
 
   {/* Customers/Orders */}
-  <NavLink to="/customers" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Customers</NavLink>
+  <NavLink to="/promo-redemption" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Promo Redeem</NavLink>
   <NavLink to="/orders" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Orders</NavLink>
   
   <div className="sidebar-separator"></div>

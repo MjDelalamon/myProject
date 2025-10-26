@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import type { CustomerType } from "../AdminPage/Customer";
 import { toPng } from "html-to-image";
+import "../Style/Customer.css";
 
 interface Props {
   customers: CustomerType[];
@@ -69,8 +70,8 @@ export default function CustomerTable({ customers, onView, onDelete }: Props) {
               <td>₱{c.wallet}</td>
               <td>{c.points}</td>
               <td>
-                <button className="btn" onClick={() => onView(c)}>View</button>
-                <button className="btn danger" onClick={() => onDelete(c.id)}>Delete</button>
+                <button className="btn view" onClick={() => onView(c)}>View</button>
+                <button className="btn delete" onClick={() => onDelete(c.id)}>Delete</button>
               </td>
             </tr>
           ))}
