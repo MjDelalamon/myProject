@@ -23,7 +23,7 @@ function Sidebar() {
 
   {/* Customers/Orders */}
   <NavLink to="/customers" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Customers</NavLink>
-  <NavLink to="/orders" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Orders</NavLink>
+  
   
   <div className="sidebar-separator"></div>
 
@@ -39,8 +39,7 @@ function Sidebar() {
 
   {/* Transactions/Notifications/Settings */}
   <NavLink to="/transactions" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Transactions</NavLink>
-  <NavLink to="/notifications" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Notifications</NavLink>
-  <NavLink to="/settings" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Settings</NavLink>
+  
   <div className="sidebar-separator"></div>
 
   {/* Logout */}

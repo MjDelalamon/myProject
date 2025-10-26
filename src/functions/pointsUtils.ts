@@ -4,7 +4,7 @@ import { db } from "../Firebase/firebaseConfig";
 // Function to get total earned points of a customer
 export const getTotalEarnedPoints = async (customerEmail: string): Promise<number> => {
   try {
-    const transactionsRef = collection(db, "customers", customerEmail, "transactions");
+    const transactionsRef = collection(db, "customers", customerEmail   );
     const transactionsSnap = await getDocs(transactionsRef);
 
     let totalPoints = 0;

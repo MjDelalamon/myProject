@@ -673,18 +673,7 @@ const startPromoScanner = () => {
       return;
     }
 
-    // 🚶 Walk-in Customer (no linked customer)
-    await addDoc(collection(db, "transactions"), {
-      customerId: "WALK-IN",
-      fullName: "Walk-in Customer",
-      orderId: transactionId,
-      amount: total,
-      paymentMethod: "Cash",
-      type: "walk-in",
-      status: "Completed",
-      date: timestamp,
-      items,
-    });
+    
 
     alert("✅ Order placed for Walk-in Customer (No points earned).");
     setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
@@ -766,7 +755,7 @@ const startPromoScanner = () => {
       status: "Completed",
       date: Timestamp.now(),
       items,
-      pointsEarned: points 
+      pointsEarned: 0
     });
 
     // also save under customer's transaction subcollection
@@ -779,7 +768,7 @@ const startPromoScanner = () => {
       status: "Completed",
       date: Timestamp.now(),
       items,
-      pointsEarned: points 
+      pointsEarned: 0 
     });
 
     alert(`✅ Paid using Points! ${total} points deducted.`);
@@ -829,7 +818,7 @@ const startPromoScanner = () => {
       status: "Completed",
       date: Timestamp.now(),
       items,
-      pointsEarned: points 
+      pointsEarned: 0
     });
 
     await updateFavoriteCategory(customer.id);
@@ -903,7 +892,9 @@ const startPromoScanner = () => {
               </div>
             ))}
 
-            <button onClick={addItem}>+ Add Item</button>
+            <button onClick={addItem}
+            style={{ marginLeft: 10, background:"#673000ff",color:"white  "  }}
+            >+ Add Item</button>
 
             <div className="order-summary-list" style={{ marginTop: "18px" }}>
               <h3>Current Items:</h3>
@@ -931,11 +922,13 @@ const startPromoScanner = () => {
             {/* STEP 1 — Search by Mobile Number */}
             <div>
               <input type="text" placeholder="Enter mobile number" value={mobileSearch} onChange={(e) => setMobileSearch(e.target.value)} />
-              <button onClick={searchCustomerByMobile}>🔍 Search</button>
+              <button onClick={searchCustomerByMobile}
+              style={{ marginLeft: 10, background:"#ffffffff",color:"black"  }}
+              >🔍 Search</button>
             </div>
 
             {/* STEP 2 — Optional Scan QR for Customer */}
-            <button onClick={startScanner} style={{ marginTop: 10 }}>
+            <button onClick={startScanner} style={{ marginTop: 10, background:"#673000ff",color:"white  "  }}>
               📷 Scan Customer QR (Optional)
             </button>
             {showScanner && <div id="reader" style={{ width: 350, height: 300, marginTop: 10 }} />}
@@ -964,11 +957,11 @@ const startPromoScanner = () => {
             {/* STEP 4 — Payment Options */}
             {customer && (
               <div style={{ marginTop: 15 }}>
-                <button onClick={handlePointsPayment} style={{ marginLeft: 10, background:"#ffca61ff",color:"black"  }}>Pay using Points</button>
-                <button onClick={handleWalletPayment} style={{ marginLeft: 10, background:"#0ff4e4ff",color:"black"  }}>
+                <button onClick={handlePointsPayment} style={{ marginLeft: 10, background:"#ffc34bff",color:"#383838ff"  }}>Pay using Points</button>
+                <button onClick={handleWalletPayment} style={{ marginLeft: 10, background:"#14d7caff",color:"#383838ff"  }}>
                    Pay using Wallet
                 </button>
-                <button onClick={handleCounterPayment} style={{ marginLeft: 10, background: "#8fff7dff",color:"black"  }}>
+                <button onClick={handleCounterPayment} style={{ marginLeft: 10, background: "#6bf356ff",color:"#383838ff"  }}>
                    Pay Over the Counter
                 </button>
               </div>
@@ -983,19 +976,7 @@ const startPromoScanner = () => {
           </div>
         </div>
 
-        {/* RECENT ORDERS */}
-        <div className="column" style={{ marginTop: 20 }}>
-          <h3>Recent Orders</h3>
-          {orders.length === 0 ? (
-            <p>No recent orders.</p>
-          ) : (
-            orders.map((o) => (
-              <p key={o.id}>
-                <b>{o.id}</b> — ₱{o.total} ({o.customerId})
-              </p>
-            ))
-          )}
-        </div>
+        
       </div>
     </>
   );

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
-import Sidebar from "../components/SideBar";
+import SidebarStaff from "../components/SideBarStaff";
 import { updateFavoriteCategory } from "../functions/updateFavoriteCategory";
 
 import {
@@ -32,7 +32,7 @@ type Order = {
   
 };
 
-const Orders: React.FC = () => {
+const OrdersStaff: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showScanner, setShowScanner] = useState(false);
@@ -363,7 +363,7 @@ const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
 
   return (
     <>
-  <Sidebar />
+  <SidebarStaff />
   <div className="p-6 ml-64">
     <h2 className="text-2xl font-semibold mb-4">Redeem Orders</h2>
 
@@ -517,4 +517,4 @@ const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
   );
 };
 
-export default Orders;
+export default OrdersStaff;

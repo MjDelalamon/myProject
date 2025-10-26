@@ -40,6 +40,7 @@ interface Customer {
   favoriteCategory: string;
   points: number;
   wallet?: number;
+  totalSpent?: number; // 🟢 added optional field
 }
 
 const PromoRedemption: React.FC = () => {
@@ -56,51 +57,51 @@ const PromoRedemption: React.FC = () => {
 
   // Fetch customer by name or mobile
   const handleSearch = async () => {
-  setMessage("");
-  setCustomer(null);
-  setPromos([]);
-  setSelectedPromo(null);
+    setMessage("");
+    setCustomer(null);
+    setPromos([]);
+    setSelectedPromo(null);
 
-  if (!searchTerm.trim()) {
-    setMessage("Please enter a name or mobile number.");
-    return;
-  }
-
-  try {
-    const customersRef = collection(db, "customers");
-
-    const nameQuery = query(customersRef, where("fullName", "==", searchTerm));
-    const mobileQuery = query(customersRef, where("mobile", "==", searchTerm));
-
-    const [nameSnap, mobileSnap] = await Promise.all([
-      getDocs(nameQuery),
-      getDocs(mobileQuery),
-    ]);
-
-    let customerDoc = null;
-
-    if (!nameSnap.empty) customerDoc = nameSnap.docs[0];
-    else if (!mobileSnap.empty) customerDoc = mobileSnap.docs[0];
-
-    if (!customerDoc) {
-      setMessage("Customer not found.");
+    if (!searchTerm.trim()) {
+      setMessage("Please enter a name or mobile number.");
       return;
     }
 
-    const data = customerDoc.data() as Customer;
-    setCustomer(data);
-    fetchEligiblePromos(data);
+    try {
+      const customersRef = collection(db, "customers");
 
-    // ✅ Get total earned points
-    const totalPoints = await getTotalEarnedPoints(data.email);
-    setTotalEarnedPoints(totalPoints);
+      const nameQuery = query(customersRef, where("fullName", "==", searchTerm));
+      const mobileQuery = query(customersRef, where("mobile", "==", searchTerm));
 
-    setMessage("✅ Customer loaded successfully.");
-  } catch (error) {
-    console.error("Error fetching customer:", error);
-    setMessage("Error loading customer.");
-  }
-};
+      const [nameSnap, mobileSnap] = await Promise.all([
+        getDocs(nameQuery),
+        getDocs(mobileQuery),
+      ]);
+
+      let customerDoc = null;
+
+      if (!nameSnap.empty) customerDoc = nameSnap.docs[0];
+      else if (!mobileSnap.empty) customerDoc = mobileSnap.docs[0];
+
+      if (!customerDoc) {
+        setMessage("Customer not found.");
+        return;
+      }
+
+      const data = customerDoc.data() as Customer;
+      setCustomer(data);
+      fetchEligiblePromos(data);
+
+      // ✅ Get total earned points
+      const totalPoints = await getTotalEarnedPoints(data.email);
+      setTotalEarnedPoints(totalPoints);
+
+      setMessage("✅ Customer loaded successfully.");
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      setMessage("Error loading customer.");
+    }
+  };
 
 
   // QR Scanner for Customer
@@ -232,108 +233,108 @@ const PromoRedemption: React.FC = () => {
     });
   };
 
-  // Redeem function with 5% points for wallet & cash
-  // Redeem function with 5% points for wallet & cash
-const handleRedeem = async () => {
-  if (!selectedPromo || !paymentMethod || !customer) {
-    setMessage("Please select a promo and payment method.");
-    return;
-  }
+  // Redeem function with totalSpent update
+  const handleRedeem = async () => {
+    if (!selectedPromo || !paymentMethod || !customer) {
+      setMessage("Please select a promo and payment method.");
+      return;
+    }
 
-  try {
-    const customerRef = doc(db, "customers", customer.email);
-    const updatedCustomer = { ...customer };
-    let pointsEarned = 0;
+    try {
+      const customerRef = doc(db, "customers", customer.email);
+      const updatedCustomer = { ...customer };
+      let pointsEarned = 0;
 
-    // Points payment
-    if (paymentMethod === "points") {
-      if (customer.points < selectedPromo.price) {
-        setMessage("❌ Not enough points for this promo.");
-        return;
+      // 🟢 Add totalSpent accumulation
+      const newTotalSpent = (updatedCustomer.totalSpent || 0) + selectedPromo.price;
+      updatedCustomer.totalSpent = newTotalSpent;
+
+      await updateDoc(customerRef, {
+        totalSpent: newTotalSpent,
+      });
+
+      // Points payment
+      if (paymentMethod === "Points") {
+        if (customer.points < selectedPromo.price) {
+          setMessage("❌ Not enough points for this promo.");
+          return;
+        }
+        updatedCustomer.points -= selectedPromo.price; 
+        await updateDoc(customerRef, {
+          points: updatedCustomer.points,
+        });
       }
-      updatedCustomer.points -= selectedPromo.price; // deduct points
-      await updateDoc(customerRef, {
-        points: updatedCustomer.points,
-      });
-      // totalEarnedPoints NOT affected
-    }
 
-    // Wallet payment
-    if (paymentMethod === "wallet") {
-      const walletBalance = customer.wallet || 0;
-      if (walletBalance < selectedPromo.price) {
-        setMessage("❌ Not enough wallet balance.");
-        return;
+      // Wallet payment
+      if (paymentMethod === "Wallet") {
+        const walletBalance = customer.wallet || 0;
+        if (walletBalance < selectedPromo.price) {
+          setMessage("❌ Not enough wallet balance.");
+          return;
+        }
+        updatedCustomer.wallet = walletBalance - selectedPromo.price;
+        pointsEarned = Math.floor(selectedPromo.price * 0.05);
+        updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
+
+        await updateDoc(customerRef, {
+          wallet: updatedCustomer.wallet,
+          points: updatedCustomer.points,
+        });
+        setTotalEarnedPoints((prev) => prev + pointsEarned);
       }
-      updatedCustomer.wallet = walletBalance - selectedPromo.price;
 
-      // Earn 5% points
-      pointsEarned = Math.floor(selectedPromo.price * 0.05);
-      updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
+      // Cash payment
+      if (paymentMethod === "Cash") {
+        pointsEarned = Math.floor(selectedPromo.price * 0.05);
+        updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
 
-      await updateDoc(customerRef, {
-        wallet: updatedCustomer.wallet,
-        points: updatedCustomer.points,
-      });
+        await updateDoc(customerRef, {
+          points: updatedCustomer.points,
+        });
+        setTotalEarnedPoints((prev) => prev + pointsEarned);
+      }
 
-      // Update totalEarnedPoints
-      setTotalEarnedPoints((prev) => prev + pointsEarned);
+      setCustomer(updatedCustomer);
+
+      // Save transaction
+      const transactionData = {
+        orderId: uuidv4(),
+        customerId: customer.email,
+        fullName: customer.fullName,
+        items: [
+          {
+            name: selectedPromo.title,
+            category: "Promo",
+            price: selectedPromo.price,
+            qty: 1,
+          },
+        ],
+        amount: selectedPromo.price,
+        paymentMethod,
+        promotype: selectedPromo.promoType,
+        status: "Completed",
+        pointsEarned,
+        date: serverTimestamp(),
+      };
+
+      await addDoc(collection(db, "transactions"), transactionData);
+      await addDoc(collection(db, "globalTransactions"), transactionData);
+      await addDoc(
+        collection(db, "customers", customer.email, "transactions"),
+        transactionData
+      );
+      await updateFavoriteCategory(customer.email);
+
+      setMessage(
+        `✅ Promo "${selectedPromo.title}" redeemed successfully using ${paymentMethod.toUpperCase()}. Points earned: ${pointsEarned}`
+      );
+      setSelectedPromo(null);
+      setPaymentMethod("");
+    } catch (error) {
+      console.error("Redeem error:", error);
+      setMessage("❌ Error processing transaction.");
     }
-
-    // Cash payment
-    if (paymentMethod.toLowerCase() === "cash") {
-      pointsEarned = Math.floor(selectedPromo.price * 0.05);
-      updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
-
-      await updateDoc(customerRef, {
-        points: updatedCustomer.points,
-      });
-
-      // Update totalEarnedPoints
-      setTotalEarnedPoints((prev) => prev + pointsEarned);
-    }
-
-    setCustomer(updatedCustomer);
-
-    // Prepare transaction
-    const transactionData = {
-      orderId: uuidv4(),
-      customerId: customer.email,
-      fullName: customer.fullName,
-      items: [
-        {
-          name: selectedPromo.title,
-          category: "Promo",
-          price: selectedPromo.price,
-          qty: 1,
-        },
-      ],
-      amount: selectedPromo.price,
-      paymentMethod,
-      promotype: selectedPromo.promoType,
-      status: "Completed",
-      pointsEarned,
-      date: serverTimestamp(),
-    };
-
-    await addDoc(collection(db, "transactions"), transactionData);
-    await addDoc(collection(db, "globalTransactions"), transactionData);
-    await addDoc(
-      collection(db, "customers", customer.email, "transactions"),
-      transactionData
-    );
-    await updateFavoriteCategory(customer.email);
-
-    setMessage(
-      `✅ Promo "${selectedPromo.title}" redeemed successfully using ${paymentMethod.toUpperCase()}. Points earned: ${pointsEarned}`
-    );
-    setSelectedPromo(null);
-    setPaymentMethod("");
-  } catch (error) {
-    console.error("Redeem error:", error);
-    setMessage("❌ Error processing transaction.");
-  }
-};
+  };
 
 
   return (
@@ -350,8 +351,12 @@ const handleRedeem = async () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button onClick={handleSearch}>Search</button>
-          <button onClick={startCustomerScanner}>📷 Scan Customer QR</button>
+          <button onClick={handleSearch}
+          style={{  background:"#693500ff",color:"white"  }}
+          >Search</button>
+          <button onClick={startCustomerScanner}
+          style={{  background:"#693500ff",color:"white"  }}
+          > Scan Customer QR</button>
           {scannerVisible && (
             <div id="customerReader" className="qr-scanner active"></div>
           )}
@@ -361,27 +366,14 @@ const handleRedeem = async () => {
         {customer && (
           <div className="customer-info">
             <h3>Customer Info</h3>
-            <p>
-              <strong>Name:</strong> {customer.fullName}
-            </p>
-            <p>
-              <strong>Email:</strong> {customer.email}
-            </p>
-            <p>
-              <strong>Mobile:</strong> {customer.mobile}
-            </p>
-            <p>
-              <strong>Tier:</strong> {customer.tier}
-            </p>
-            <p>
-              <strong>Favorite Category:</strong> {customer.favoriteCategory}
-            </p>
-            <p>
-              <strong>Points:</strong> {customer.points}
-            </p>
-            <p>
-              <strong>Wallet Balance:</strong> ₱{customer.wallet || 0}
-            </p>
+            <p><strong>Name:</strong> {customer.fullName}</p>
+            <p><strong>Email:</strong> {customer.email}</p>
+            <p><strong>Mobile:</strong> {customer.mobile}</p>
+            <p><strong>Tier:</strong> {customer.tier}</p>
+            <p><strong>Favorite Category:</strong> {customer.favoriteCategory}</p>
+            <p><strong>Points:</strong> {customer.points}</p>
+            <p><strong>Wallet Balance:</strong> ₱{customer.wallet || 0}</p>
+            <p><strong>Total Spent:</strong> ₱{customer.totalSpent || 0}</p> {/* 🟢 display added */}
           </div>
         )}
 
@@ -389,7 +381,9 @@ const handleRedeem = async () => {
         {customer && (
           <div>
             <h3>Eligible Promos</h3>
-            <button onClick={startPromoScanner}>📷 Scan Promo QR</button>
+            <button onClick={startPromoScanner}
+            style={{  background:"#693500ff",color:"white"  }}
+            > Scan Promo QR</button>
             {promoScannerVisible && (
               <div id="promoReader" className="qr-scanner active"></div>
             )}
@@ -424,15 +418,16 @@ const handleRedeem = async () => {
               onChange={(e) => setPaymentMethod(e.target.value)}
             >
               <option value="">-- Select Payment --</option>
-              <option value="points">Points</option>
-              <option value="wallet">Wallet</option>
-              <option value="cash">Over the Counter</option>
+              <option value="Points">Points</option>
+              <option value="Wallet">Wallet</option>
+              <option value="Cash">Over the Counter</option>
             </select>
-            <button onClick={handleRedeem}>Confirm</button>
+            <button onClick={handleRedeem}
+            style={{  background:"#693500ff",color:"white"  }}
+            >Confirm</button>
           </div>
         )}
 
-        {/* Message */}
         {message && <p className="message">{message}</p>}
       </div>
     </>

@@ -190,6 +190,46 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-box {
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: popIn 0.3s ease;
+}
+
+.modal-box h2 {
+  margin-bottom: 12px;
+  color: #b17a50;
+}
+
+.modal-box button {
+  margin-top: 16px;
+  background-color: #b17a50;
+  color: white;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+
 /* --- Responsive --- */
 @media (max-width: 900px) {
   .assisted-ordering {

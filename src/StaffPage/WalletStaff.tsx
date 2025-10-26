@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import Sidebar from "../components/SideBar";
+import SidebarStaff from "../components/SideBarStaff";
 import { db } from "../Firebase/firebaseConfig";
 import "../Style/Wallet.css";
 import {
@@ -42,7 +42,7 @@ interface WalletRequest {
 }
 
 // ----------------- Main Component -----------------
-const WalletPage: React.FC = () => {
+const WalletPageStaff: React.FC = () => {
   const [searchMobile, setSearchMobile] = useState("");
   const [customer, setCustomer] = useState<CustomerWallet | null>(null);
   const [adjustAmount, setAdjustAmount] = useState<number>(0);
@@ -208,7 +208,7 @@ const WalletPage: React.FC = () => {
 
   return (
     <>
-      <Sidebar />
+      <SidebarStaff />
       <div className="wallet-container">
         <h1 className="wallet-title">Wallet System & Requests</h1>
 
@@ -221,7 +221,8 @@ const WalletPage: React.FC = () => {
             onChange={(e) => setSearchMobile(e.target.value)}
             placeholder="Enter mobile number"
           />
-          <button onClick={handleSearch}>Search</button>
+          <button onClick={handleSearch}
+          style={{ background: "#6d3500ff", color: "white" }}>Search</button>
         </div>
 
         {/* Customer Info & Manual Adjustment */}
@@ -286,7 +287,7 @@ const WalletPage: React.FC = () => {
 
         {/* Wallet Requests */}
         <div className="section">
-          <h2>📥 Wallet Requests</h2>
+          <h2> Wallet Requests</h2>
           
           {/* Filter */}
           <div style={{ marginBottom: "10px" }}>
@@ -337,7 +338,7 @@ const WalletPage: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => handleDeleteRequest(req.id)}
-                          style={{ background: "#d3d3d3", color: "black" }}
+                          style={{ background: "#ff5b5bff", color: "white" }}
                         >
                           Delete
                         </button>
@@ -379,4 +380,4 @@ const WalletPage: React.FC = () => {
   );
 };
 
-export default WalletPage;
+export default WalletPageStaff;

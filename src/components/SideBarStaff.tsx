@@ -22,25 +22,17 @@ function SidebarStaff() {
   <div className="sidebar-separator"></div>
 
   {/* Customers/Orders */}
-  <NavLink to="/promo-redemption" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Promo Redeem</NavLink>
-  <NavLink to="/orders" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Orders</NavLink>
+  <NavLink to="/promo-redemption" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Promo</NavLink>
+  <NavLink to="/orders-staff" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Orders</NavLink>
   
   <div className="sidebar-separator"></div>
 
-  {/* Rewards/Menu */}
-  <NavLink to="/rewards" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Rewards</NavLink>
-  <NavLink to="/menu" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Menu</NavLink>
-  <div className="sidebar-separator"></div>
+  
 
   {/* Wallet/Feedback */}
-  <NavLink to="/wallet" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Wallet Requests</NavLink>
-  <NavLink to="/feedback" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Feedback</NavLink>
-  <div className="sidebar-separator"></div>
-
-  {/* Transactions/Notifications/Settings */}
-  <NavLink to="/transactions" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Transactions</NavLink>
-  <NavLink to="/notifications" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Notifications</NavLink>
-  <NavLink to="/settings" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Settings</NavLink>
+  <NavLink to="/wallet-staff" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>Wallet Requests</NavLink>
+  
+  
   <div className="sidebar-separator"></div>
 
   {/* Logout */}

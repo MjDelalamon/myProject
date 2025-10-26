@@ -1,0 +1,143 @@
+/* ===== Page Container ===== */
+.feedback-container {
+  padding: 30px;
+  font-family: "Poppins", sans-serif;
+  background-color: #f9f7f3;
+  min-height: 100vh;
+}
+
+/* ===== Header ===== */
+.feedback-header {
+  font-size: 26px;
+  font-weight: 700;
+  color: #4e342e;
+  margin-bottom: 20px;
+  text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Controls (Search + Filter) ===== */
+.feedback-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.feedback-search {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #d7ccc8;
+  font-size: 15px;
+  outline: none;
+  background-color: #fffaf5;
+  transition: 0.3s;
+}
+
+.feedback-search:focus {
+  border-color: #a1887f;
+  box-shadow: 0 0 5px rgba(161, 136, 127, 0.3);
+}
+
+.feedback-filter {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d7ccc8;
+  background-color: #fffaf5;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.feedback-filter:hover {
+  background-color: #f3e5f5;
+}
+
+/* ===== Table Wrapper ===== */
+.feedback-table-wrapper {
+  overflow-x: auto;
+  border-radius: 16px;
+  box-shadow: 0px 4px 10px rgba(78, 52, 46, 0.1);
+  background: #ffffff;
+}
+
+/* ===== Table ===== */
+.feedback-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ===== Table Header ===== */
+.feedback-table th {
+  background-color: #6d4c41;
+  color: #fff;
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  font-size: 15px;
+}
+
+/* ===== Table Rows ===== */
+.feedback-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  color: #4e342e;
+  vertical-align: top;
+  font-size: 14.5px;
+}
+
+/* Zebra effect for better readability */
+.feedback-table tr:nth-child(even) {
+  background-color: #fefcf9;
+}
+
+/* Hover highlight */
+.feedback-table tr:hover {
+  background-color: #fff3e0;
+  transition: 0.2s;
+}
+
+/* ===== Rating Stars ===== */
+.feedback-table td svg {
+  margin-right: 2px;
+  transition: transform 0.2s;
+}
+
+.feedback-table td svg:hover {
+  transform: scale(1.2);
+}
+
+/* ===== Comment Cell ===== */
+.feedback-table td em {
+  color: #a1887f;
+  font-style: italic;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .feedback-container {
+    padding: 15px;
+  }
+
+  .feedback-header {
+    font-size: 22px;
+  }
+
+  .feedback-controls {
+    flex-direction: column;
+  }
+
+  .feedback-search,
+  .feedback-filter {
+    width: 100%;
+  }
+
+  .feedback-table th,
+  .feedback-table td {
+    font-size: 13px;
+    padding: 10px;
+  }
+}

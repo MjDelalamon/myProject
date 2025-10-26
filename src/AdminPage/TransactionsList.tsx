@@ -4,6 +4,7 @@ import { db } from "../Firebase/firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/SideBar";
 import "../Style/TransactionsList.css";
+import { Html5QrcodeScanner } from "html5-qrcode"; // ✅ Add this import
 
 type Item = {
   category: string;
@@ -45,10 +46,13 @@ const TransactionsList: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<"Newest" | "Oldest">("Newest");
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<
-    "All" | "Points" | "Wallet" | "Over the Counter"
+    "All" | "Points" | "Wallet" | "Cash"
   >("All");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+
+  // ✅ QR Scanner state
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -87,6 +91,31 @@ const TransactionsList: React.FC = () => {
     fetchTransactions();
   }, [sortOrder]);
 
+  // ✅ Initialize QR Scanner
+  useEffect(() => {
+    if (showScanner) {
+      const scanner = new Html5QrcodeScanner("qr-reader", {
+        fps: 10,
+        qrbox: 250,
+      });
+
+      scanner.render(
+        (decodedText) => {
+          setSearchTerm(decodedText); // Filter by scanned text
+          setShowScanner(false); // Hide scanner after scan
+          scanner.clear();
+        },
+        (error) => {
+          console.warn("QR Scan error:", error);
+        }
+      );
+
+      return () => {
+        scanner.clear().catch(() => {});
+      };
+    }
+  }, [showScanner]);
+
   const sortedTransactions = useMemo(() => {
     return [...transactions].sort((a, b) => {
       const dateA = a.rawDate.getTime();
@@ -99,7 +128,8 @@ const TransactionsList: React.FC = () => {
     return sortedTransactions.filter((t) => {
       const matchesSearch =
         t.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.customerId.toLowerCase().includes(searchTerm.toLowerCase());
+        t.customerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.id.toLowerCase().includes(searchTerm.toLowerCase()); // ✅ allow search by transactionId
 
       const matchesPayment =
         paymentFilter === "All" || t.paymentMethod === paymentFilter;
@@ -113,7 +143,10 @@ const TransactionsList: React.FC = () => {
   }, [sortedTransactions, searchTerm, paymentFilter, startDate, endDate]);
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
+    new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(amount);
 
   const totalSales = useMemo(() => {
     return filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
@@ -128,11 +161,23 @@ const TransactionsList: React.FC = () => {
         <div className="controls">
           <input
             type="text"
-            placeholder="Search by customer or ID..."
+            placeholder="Search by customer, ID, or scan QR..."
             className="search-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+
+          {/* ✅ QR Scanner Button */}
+          <button
+            onClick={() => setShowScanner(!showScanner)}
+            className="qr-btn"
+          >
+            {showScanner ? "Close Scanner" : "Scan QR"}
+          </button>
+
+          {showScanner && (
+            <div id="qr-reader" style={{ width: "300px", marginTop: "10px" }} />
+          )}
 
           <select
             className="filter-select"
@@ -142,7 +187,7 @@ const TransactionsList: React.FC = () => {
             <option value="All">All Payment Methods</option>
             <option value="Wallet">Wallet</option>
             <option value="Points">Points</option>
-            <option value="Over the Counter">Over the Counter</option>
+            <option value="Cash">Over the Counter</option>
           </select>
 
           <input
@@ -169,51 +214,56 @@ const TransactionsList: React.FC = () => {
           <div className="table-wrapper">
             <table className="transactions-table">
               <thead>
-  <tr>
-    <th>Transaction ID</th>
-    <th>Customer</th>
-    
-    <th>Amount</th>
-    <th>Payment Method</th>
-    <th>Date</th>
-    <th>Items</th>
-  </tr>
-</thead>
-<tbody>
-  {filteredTransactions.map((item) => (
-    <tr key={item.id} onClick={() => navigate(`/transaction/${item.id}`)}>
-      <td>{item.id}</td>  {/* Transaction ID */}
-      <td>{item.fullName}</td>
-      
-      <td>{formatCurrency(item.amount)}</td>
-      <td
-        className={`payment-method ${
-          item.paymentMethod === "Points"
-            ? "Points"
-            : item.paymentMethod === "Wallet"
-            ? "wallet"
-            : "cash"
-        }`}
-      >
-        {item.paymentMethod}
-      </td>
-      <td>{item.date}</td>
-      <td>
-        <ul style={{ paddingLeft: "15px", margin: 0 }}>
-          {item.items.map((itm, idx) => (
-            <li key={idx} style={{ marginBottom: "4px" }}>
-              <strong>{itm.name}</strong>
-              {itm.category && <span> — <em>{itm.category}</em></span>}
-              <span> | Qty: {itm.qty}</span>
-              <span> | ₱{itm.price}</span>
-            </li>
-          ))}
-        </ul>
-      </td>
-    </tr>
-  ))}
-</tbody>
-
+                <tr>
+                  <th>Transaction ID</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Payment Method</th>
+                  <th>Date</th>
+                  <th>Items</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTransactions.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => navigate(`/transaction/${item.id}`)}
+                  >
+                    <td>{item.id}</td>
+                    <td>{item.fullName}</td>
+                    <td>{formatCurrency(item.amount)}</td>
+                    <td
+                      className={`payment-method ${
+                        item.paymentMethod === "Points"
+                          ? "Points"
+                          : item.paymentMethod === "Wallet"
+                          ? "wallet"
+                          : "cash"
+                      }`}
+                    >
+                      {item.paymentMethod}
+                    </td>
+                    <td>{item.date}</td>
+                    <td>
+                      <ul style={{ paddingLeft: "15px", margin: 0 }}>
+                        {item.items.map((itm, idx) => (
+                          <li key={idx} style={{ marginBottom: "4px" }}>
+                            <strong>{itm.name}</strong>
+                            {itm.category && (
+                              <span>
+                                {" "}
+                                — <em>{itm.category}</em>
+                              </span>
+                            )}
+                            <span> | Qty: {itm.qty}</span>
+                            <span> | ₱{itm.price}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         )}
