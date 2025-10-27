@@ -134,10 +134,12 @@ export default function AddCustomerModal({ onAdd, onClose }: Props) {
         </select>
 
         <div className="modal-actions">
-          <button className="btn" onClick={handleSave} disabled={loading}>
+          <button className="btn" onClick={handleSave} disabled={loading}
+          style={{ marginLeft: 10, background:"#92e846ff",color:"#010000ff"  }}>
             {loading ? "Saving..." : "Save"}
           </button>
-          <button className="btn danger" onClick={onClose} disabled={loading}>
+          <button className="btn danger" onClick={onClose} disabled={loading}
+          style={{ marginLeft: 10, background:"#ff2c2cff",color:"white"  }}>
             Cancel
           </button>
         </div>

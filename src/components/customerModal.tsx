@@ -26,7 +26,8 @@ export default function ViewCustomerModal({ customer, onClose }: Props) {
         {customer.email && <QRCodeSVG value={customer.email} size={128} />}
 
         <br />
-        <button className="btn" onClick={onClose}>Close</button>
+        <button className="btn" onClick={onClose}
+        style={{ marginLeft: 10, background:"#828282ff",color:"white"  }}>Close</button>
       </div>
     </div>
   );

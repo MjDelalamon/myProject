@@ -112,7 +112,8 @@ function Customer() {
             value={filters.mobile}
             onChange={e => setFilters(f => ({ ...f, mobile: e.target.value }))}
           />
-          <button className="btn add" onClick={() => setShowAddModal(true)}>+ Add Customer</button>
+          <button className="btn add" onClick={() => setShowAddModal(true)}
+            style={{ marginLeft: 10, background:"#5b1818ff",color:"white"  }}>+ Add Customer</button>
         </div>
 
         {/* Customer Table */}

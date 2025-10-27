@@ -307,7 +307,9 @@ function Dashboard() {
           <div className="modal-box">
             <h2>🪙 New Pending Wallet Request!</h2>
             <p><strong>{newRequestName}</strong> just submitted a new wallet request.</p>
-            <button onClick={() => setShowModal(false)}>Close</button>
+            <button onClick={() => setShowModal(false)}
+             style={{  background:"#763f00ff",color:"white"  }}
+              >Close</button>
           </div>
         </div>
       )}

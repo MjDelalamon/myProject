@@ -818,7 +818,7 @@ const startPromoScanner = () => {
       status: "Completed",
       date: Timestamp.now(),
       items,
-      pointsEarned: 0
+      pointsEarned: points
     });
 
     await updateFavoriteCategory(customer.id);
