@@ -103,7 +103,7 @@ const FeedbackList: React.FC = () => {
               <thead>
                 <tr>
                   <th>Customer</th>
-                  <th>Order ID</th>
+                  
                   <th>Rating</th>
                   <th>Comment</th>
                   <th>Date</th>
@@ -113,7 +113,7 @@ const FeedbackList: React.FC = () => {
                 {filteredFeedbacks.map((f) => (
                   <tr key={f.id}>
                     <td>{f.customerId}</td>
-                    <td>{f.orderId}</td>
+                   
                     <td>
                       {[...Array(5)].map((_, i) => (
                         <Star

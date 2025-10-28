@@ -62,92 +62,60 @@
   background-color: #c29972;
 }
 
-/* Image preview */
-.image-preview {
-  width: 150px;
-  max-width: 100%;
-  border-radius: 8px;
-  margin-top: 10px;
+/* Table */
+.menu-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 40px;
+}
+
+.menu-table th,
+.menu-table td {
   border: 1px solid #ccc;
-  padding: 5px;
-  background-color: #fffaf5;
+  padding: 12px 15px;
+  text-align: left;
 }
 
-/* Menu list grid */
-.menu-list {
-  display: grid;
-  gap: 25px;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-}
-
-/* Menu card */
-.menu-card {
-  background-color: #fffaf5;
-  padding: 15px;
-  border-radius: 12px;
-  text-align: center;
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-.menu-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-}
-
-.menu-card img {
-  width: 80%;
-  max-height: 220px;
-  object-fit: contain;
-  object-position: center;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  background-color: #fdfaf6;
-  padding: 8px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-}
-
-/* Card text */
-.menu-card h3 {
-  font-size: 1.2rem;
-  margin-bottom: 6px;
-  color: #333;
-}
-.menu-card p {
-  margin: 4px 0;
-  color: #555;
-}
-.menu-card p strong {
+.menu-table th {
+  background-color: #f0e6db;
   color: #69481d;
   font-weight: bold;
 }
 
-/* Buttons inside card */
-.menu-buttons {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 10px;
+.menu-table tbody tr:nth-child(even) {
+  background-color: #fdf6f0;
 }
-.menu-buttons button {
-  margin: 5px;
-  padding: 7px 12px;
-  border-radius: 8px;
+
+.menu-table tbody tr:hover {
+  background-color: #ffeee1;
+}
+
+/* Action buttons in table */
+.menu-table button {
+  padding: 5px 10px;
+  border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
   transition: 0.3s;
+  margin-right: 5px;
+  border: none;
 }
-.menu-buttons button:first-child {
-  background-color: #fff;
-  color: #000;
-  border: 1px solid #ccc;
-}
-.menu-buttons button:first-child:hover {
-  background-color: #f5f5f5;
-}
-.menu-buttons button:last-child {
-  background-color: #8b0000;
+
+.menu-table button:first-child {
+  background-color: #67ad42ff;
   color: #fff;
 }
-.menu-buttons button:last-child:hover {
+
+.menu-table button:first-child:hover {
+  background-color: #579236;
+}
+
+.menu-table button:last-child {
+  background-color: #f13e1fff;
+  color: #fff;
+}
+
+.menu-table button:last-child:hover {
   background-color: #a30000;
 }
 
@@ -192,14 +160,10 @@
   .menu-container {
     padding: 25px 15px;
   }
-  .menu-card img {
-    width: 100%;
-    max-height: 180px;
+  .menu-table th, .menu-table td {
+    padding: 8px 10px;
   }
-  .menu-buttons {
-    flex-direction: column;
-  }
-  .menu-buttons button {
-    width: 100%;
+  .menu-form {
+    padding: 20px;
   }
 }

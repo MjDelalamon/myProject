@@ -221,7 +221,9 @@ const WalletPage: React.FC = () => {
             onChange={(e) => setSearchMobile(e.target.value)}
             placeholder="Enter mobile number"
           />
-          <button onClick={handleSearch}>Search</button>
+          <button onClick={handleSearch}
+          style={{background:"#5b1818ff",color:"white"  }}
+          >Search</button>
         </div>
 
         {/* Customer Info & Manual Adjustment */}
@@ -249,7 +251,9 @@ const WalletPage: React.FC = () => {
                 onChange={(e) => setAdjustAmount(Number(e.target.value))}
                 placeholder="Enter amount"
               />
-              <button onClick={handleAdjustment}>Confirm Adjustment</button>
+              <button onClick={handleAdjustment}
+              style={{background:"#5b1818ff",color:"white"  }}
+              >Confirm Adjustment</button>
             </div>
 
             <div className="section">

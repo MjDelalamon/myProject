@@ -226,31 +226,27 @@ function Dashboard() {
 
 
           {/* 🏆 Top Selling Categories */}
-          <div className="graph-card">
-            <h3>Top Selling Categories: {filter}</h3>
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart
-                layout="vertical"
-                data={topCategories}
-                margin={{ top: 20, right: 30, left: 50, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={140}
-                  tick={{ fontSize: 14, fill: "#4b2e16" }}
-                />
-                <Tooltip />
-                <Bar dataKey="count" fill="#a46a3b" barSize={25}>
-                  {topCategories.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+         {/* 🏆 Top Selling Categories */}
+<div className="graph-card">
+  <h3>Top Selling Categories: {filter}</h3>
+  <ResponsiveContainer width="100%" height={320}>
+    <BarChart
+      data={topCategories}
+      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+    >
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="name" tick={{ fontSize: 14, fill: "#4b2e16" }} />
+      <YAxis />
+      <Tooltip />
+      <Bar dataKey="count" fill="#a46a3b" barSize={40}>
+        {topCategories.map((entry, index) => (
+          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+        ))}
+      </Bar>
+    </BarChart>
+  </ResponsiveContainer>
+</div>
+
 
           {/* 🧁 Promo Type Analysis Chart */}
           <div className="graph-card">
@@ -306,7 +302,7 @@ function Dashboard() {
         <div className="modal-overlay">
           <div className="modal-box">
             <h2>🪙 New Pending Wallet Request!</h2>
-            <p><strong>{newRequestName}</strong> just submitted a new wallet request.</p>
+            
             <button onClick={() => setShowModal(false)}
              style={{  background:"#763f00ff",color:"white"  }}
               >Close</button>

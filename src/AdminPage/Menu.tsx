@@ -2,14 +2,7 @@ import React, { useEffect, useState } from "react";
 import Sidebar from "../components/SideBar";
 import { db } from "../Firebase/firebaseConfig";
 import "../Style/Menu.css";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  doc,
-} from "firebase/firestore";
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 
 type MenuItem = {
   id: string;
@@ -17,7 +10,6 @@ type MenuItem = {
   description: string;
   price: number;
   category: string;
-  image: string;
   availability: boolean;
 };
 
@@ -28,7 +20,6 @@ function Menu() {
     description: "",
     price: 0,
     category: "",
-    image: "",
     availability: true,
   });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,25 +43,12 @@ function Menu() {
   }, []);
 
   // 🔹 Handle input change
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-  };
-
-  // 🔹 Image preview only
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({ ...prev, image: imageUrl }));
-    }
   };
 
   // 🔹 Request PIN
@@ -88,9 +66,7 @@ function Menu() {
           const ref = doc(db, "menu", editingId);
           await updateDoc(ref, formData);
           setMenuItems((prev) =>
-            prev.map((item) =>
-              item.id === editingId ? { id: editingId, ...formData } : item
-            )
+            prev.map((item) => (item.id === editingId ? { id: editingId, ...formData } : item))
           );
           setEditingId(null);
         } else {
@@ -130,7 +106,6 @@ function Menu() {
       description: "",
       price: 0,
       category: "",
-      image: "",
       availability: true,
     });
     setShowModal(false);
@@ -141,7 +116,7 @@ function Menu() {
       <Sidebar />
 
       <div className="menu-container">
-        <h1> Menu Management</h1>
+        <h1>Reward Management</h1>
 
         {/* Add Menu Button */}
         <button
@@ -151,38 +126,55 @@ function Menu() {
           }}
           style={{
             padding: "10px 20px",
-            background: "#69481d",
-            color: "#fff",
+            background:"#5b1818ff",
+            color:"white",  
             border: "none",
             borderRadius: "8px",
             cursor: "pointer",
             marginBottom: "20px",
           }}
         >
-           Add Menu Item
+          + Add Menu Item
         </button>
 
-        {/* Menu List */}
-        <div className="menu-list">
-          {menuItems.map((item) => (
-            <div className="menu-card" key={item.id}>
-              <img src={item.image} alt={item.name} />
-              <h3>{item.name}</h3>
-              <p>{item.description}</p>
-              <p>
-                <strong>₱{item.price}</strong>
-              </p>
-              <p>Category: {item.category}</p>
-              <p>Status: {item.availability ? "Available" : "Unavailable"}</p>
-              <div className="menu-buttons">
-                <button onClick={() => handleEdit(item.id)}>Edit</button>
-                <button onClick={() => requestPin("delete", item.id)}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Table Menu */}
+        <table className="menu-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {menuItems.map((item) => (
+              <tr key={item.id}>
+                <td>{item.name}</td>
+                <td>{item.description}</td>
+                <td>{item.price} pts.</td>
+                <td>{item.category}</td>
+                <td>{item.availability ? "Available" : "Unavailable"}</td>
+                <td>
+                  <button
+                    onClick={() => handleEdit(item.id)}
+                    style={{ background: "#67ad42ff", color: "white", marginRight: "5px" }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => requestPin("delete", item.id)}
+                    style={{ background: "#f13e1fff", color: "white" }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* 🔹 Add/Edit Modal */}
@@ -232,18 +224,6 @@ function Menu() {
                 <option value="Bento">Bento</option>
                 <option value="Package Bundles">Package Bundles</option>
               </select>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-              {formData.image && (
-                <img
-                  src={formData.image}
-                  alt="Preview"
-                  className="image-preview"
-                />
-              )}
               <label>
                 <input
                   name="availability"
@@ -253,11 +233,13 @@ function Menu() {
                 />
                 Available
               </label>
-              <button type="submit">{editingId ? "Update" : "Add"} Item</button>
+              <button type="submit"
+               style={{ background: "#67ad42ff", color: "white", marginRight: "5px" }}
+              >{editingId ? "Update" : "Add"} Item</button>
               <button
                 type="button"
                 onClick={resetForm}
-                style={{ background: "#aaa", color: "#fff" }}
+                style={{ background: "#f13e1fff", color: "white" }}
               >
                 Cancel
               </button>
@@ -278,8 +260,12 @@ function Menu() {
               placeholder="Enter PIN"
             />
             <br />
-            <button onClick={verifyPin}>Confirm</button>
-            <button onClick={() => setShowPinPrompt(false)}>Cancel</button>
+            <button onClick={verifyPin}
+            style={{ background: "#67ad42ff", color: "white", marginRight: "5px" }}
+            >Confirm</button>
+            <button onClick={() => setShowPinPrompt(false)}
+              style={{ background: "#f13e1fff", color: "white" }}
+              >Cancel</button>
           </div>
         </div>
       )}

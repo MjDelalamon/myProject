@@ -143,7 +143,8 @@ function Promotion() {
       <div className="promotion-container">
         <div className="promo-header">
           <h2>Current Promotions</h2>
-          <button className="add-btn" onClick={() => setIsModalOpen(true)}>
+          <button className="add-btn" onClick={() => setIsModalOpen(true)}
+            style={{background:"#5b1818ff",color:"white"  }}>
             + Add Promotion
           </button>
         </div>
@@ -200,8 +201,12 @@ function Promotion() {
                 </div>
 
                 <div className="promo-actions">
-                  <button onClick={() => handleEdit(promo)}>Edit</button>
-                  <button onClick={() => handleDelete(promo.id)}>Delete</button>
+                  <button onClick={() => handleEdit(promo)}
+                    style ={{background:"#67ad42ff",color:"white"  }}
+                    >Edit</button>
+                  <button onClick={() => handleDelete(promo.id)}
+                    style ={{background:"#f13e1fff",color:"white"  }}
+                    >Delete</button>
                 </div>
               </li>
             ))}
@@ -250,8 +255,12 @@ function Promotion() {
               </div>
               <textarea name="description" placeholder="Description" value={form.description || ""} onChange={handleChange} rows={3} />
               <div className="modal-actions">
-                <button onClick={handleSubmit}>{editingId ? "Update" : "Add"}</button>
-                <button onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button onClick={handleSubmit}
+                style ={{background:"#3a7c17ff",color:"white"  }}
+                >{editingId ? "Update" : "Add"}</button>
+                <button onClick={() => setIsModalOpen(false)}
+                   style ={{background:"#f13e1fff",color:"white"  }}
+                  >Cancel</button>
               </div>
             </div>
           </div>
