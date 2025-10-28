@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../Firebase/firebaseConfig";
+import "../Style/SideBarStaff.css"
 
 
 
@@ -64,9 +65,9 @@ function SidebarStaff() {
               isActive ? "sidebar-link active order-link" : "sidebar-link order-link"
             }
           >
-            Orders
+            Order
             {pendingOrderCount > 0 && (
-              <span className="notification-badge">{pendingOrderCount}</span>
+              <span className=" order-badge">{pendingOrderCount}</span>
             )}
           </NavLink>
 

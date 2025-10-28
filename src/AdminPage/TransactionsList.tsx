@@ -171,6 +171,7 @@ const TransactionsList: React.FC = () => {
           <button
             onClick={() => setShowScanner(!showScanner)}
             className="qr-btn"
+            style={{  background:"#5b1818ff",color:"white"  }}
           >
             {showScanner ? "Close Scanner" : "Scan QR"}
           </button>

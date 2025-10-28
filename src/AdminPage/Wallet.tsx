@@ -360,7 +360,7 @@ const WalletPage: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => handleDeleteRequest(req.id)}
-                          style={{ background: "#d3d3d3", color: "black" }}
+                          style={{ background: "#ff4444ff", color: "white" }}
                         >
                           Delete
                         </button>

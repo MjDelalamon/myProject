@@ -77,19 +77,19 @@
 }
 
 .wallet-link {
-  position: relative;
+  position: relative; /* ensure badge is positioned relative to this container */
   display: inline-flex;
   align-items: center;
-  gap: 6px; /* maliit na pagitan lang */
-  align-items: center;
+  gap: 6px;
   justify-content: center;
 }
+
 
 
 .notification-badge {
   position: absolute;
   top: -5px;
-  right: 10px;
+  right: 0px; /* adjust if needed */
   background: #ff3b30;
   color: white;
   font-size: 11px;
@@ -101,6 +101,24 @@
   align-items: center;
   justify-content: center;
 }
+
+.order-badge {
+  position:relative;
+  bottom: 20px;
+  left: 92%; /* adjust if needed */
+  background: #ff3b30;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
 
 
 
