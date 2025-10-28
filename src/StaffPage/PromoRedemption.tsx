@@ -2,21 +2,19 @@ import React, { useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import SidebarStaff from "../components/SideBarStaff";
 import "../Style/PromoRedemption.css";
-import { v4 as uuidv4 } from "uuid"; // npm install uuid
+import { v4 as uuidv4 } from "uuid";
 import { updateFavoriteCategory } from "../functions/updateFavoriteCategory";
 import { getTotalEarnedPoints } from "../functions/pointsUtils";
-
 import {
-  getFirestore,
   collection,
   getDocs,
   getDoc,
   doc,
   query,
   where,
-  addDoc, 
+  addDoc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../Firebase/firebaseConfig";
 
@@ -40,7 +38,7 @@ interface Customer {
   favoriteCategory: string;
   points: number;
   wallet?: number;
-  totalSpent?: number; // 🟢 added optional field
+  totalSpent?: number;
 }
 
 const PromoRedemption: React.FC = () => {
@@ -49,11 +47,11 @@ const PromoRedemption: React.FC = () => {
   const [promos, setPromos] = useState<Promotion[]>([]);
   const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [referenceNo, setReferenceNumber] = useState<string>("");
   const [scannerVisible, setScannerVisible] = useState<boolean>(false);
   const [promoScannerVisible, setPromoScannerVisible] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
   const [totalEarnedPoints, setTotalEarnedPoints] = useState<number>(0);
-
 
   // Fetch customer by name or mobile
   const handleSearch = async () => {
@@ -69,15 +67,9 @@ const PromoRedemption: React.FC = () => {
 
     try {
       const customersRef = collection(db, "customers");
-
       const nameQuery = query(customersRef, where("fullName", "==", searchTerm));
       const mobileQuery = query(customersRef, where("mobile", "==", searchTerm));
-
-      const [nameSnap, mobileSnap] = await Promise.all([
-        getDocs(nameQuery),
-        getDocs(mobileQuery),
-      ]);
-
+      const [nameSnap, mobileSnap] = await Promise.all([getDocs(nameQuery), getDocs(mobileQuery)]);
       let customerDoc = null;
 
       if (!nameSnap.empty) customerDoc = nameSnap.docs[0];
@@ -92,17 +84,14 @@ const PromoRedemption: React.FC = () => {
       setCustomer(data);
       fetchEligiblePromos(data);
 
-      // ✅ Get total earned points
       const totalPoints = await getTotalEarnedPoints(data.email);
       setTotalEarnedPoints(totalPoints);
-
       setMessage("✅ Customer loaded successfully.");
     } catch (error) {
       console.error("Error fetching customer:", error);
       setMessage("Error loading customer.");
     }
   };
-
 
   // QR Scanner for Customer
   const startCustomerScanner = () => {
@@ -125,10 +114,11 @@ const PromoRedemption: React.FC = () => {
         const data = customerSnap.data() as Customer;
         setCustomer(data);
         fetchEligiblePromos(data);
+
         const totalPoints = await getTotalEarnedPoints(data.email);
         setTotalEarnedPoints(totalPoints);
-        setMessage("✅ Customer loaded via QR successfully.");
 
+        setMessage("✅ Customer loaded via QR successfully.");
         scanner.clear();
         setScannerVisible(false);
       } catch (error) {
@@ -154,14 +144,10 @@ const PromoRedemption: React.FC = () => {
       const eligiblePromos = allPromos.filter((p) => {
         const startOk = !p.startDate || new Date(p.startDate) <= now;
         const endOk = !p.endDate || new Date(p.endDate) >= now;
-        const tierOk =
-          p.applicableTiers?.length === 0 ||
-          p.applicableTiers?.includes(customerData.tier);
+        const tierOk = p.applicableTiers?.length === 0 || p.applicableTiers?.includes(customerData.tier);
         const categoryOk =
           p.promoType === "global" ||
-          (p.promoType === "personalized" &&
-            p.category === customerData.favoriteCategory);
-
+          (p.promoType === "personalized" && p.category === customerData.favoriteCategory);
         return startOk && endOk && tierOk && categoryOk;
       });
 
@@ -180,7 +166,6 @@ const PromoRedemption: React.FC = () => {
     scanner.render(async (decodedText: string) => {
       try {
         let qrData;
-
         try {
           qrData = JSON.parse(decodedText);
         } catch {
@@ -208,12 +193,10 @@ const PromoRedemption: React.FC = () => {
         }
 
         const promo = promoSnap.data() as Promotion;
-
         const eligible =
           promo.applicableTiers?.includes(customer?.tier || "") &&
           (promo.promoType === "global" ||
-            (promo.promoType === "personalized" &&
-              promo.category === customer?.favoriteCategory));
+            (promo.promoType === "personalized" && promo.category === customer?.favoriteCategory));
 
         if (eligible) {
           setSelectedPromo({ id: qrData.promoId, ...promo });
@@ -233,25 +216,28 @@ const PromoRedemption: React.FC = () => {
     });
   };
 
-  // Redeem function with totalSpent update
+  // Redeem function
   const handleRedeem = async () => {
     if (!selectedPromo || !paymentMethod || !customer) {
       setMessage("Please select a promo and payment method.");
       return;
     }
 
+    if (paymentMethod === "E-Wallet" && !referenceNo.trim()) {
+  setMessage("Please enter the E-Wallet reference number.");
+  return;
+}
+
+
     try {
       const customerRef = doc(db, "customers", customer.email);
       const updatedCustomer = { ...customer };
       let pointsEarned = 0;
 
-      // 🟢 Add totalSpent accumulation
+      // 🟢 totalSpent always updates
       const newTotalSpent = (updatedCustomer.totalSpent || 0) + selectedPromo.price;
       updatedCustomer.totalSpent = newTotalSpent;
-
-      await updateDoc(customerRef, {
-        totalSpent: newTotalSpent,
-      });
+      await updateDoc(customerRef, { totalSpent: newTotalSpent });
 
       // Points payment
       if (paymentMethod === "Points") {
@@ -259,13 +245,11 @@ const PromoRedemption: React.FC = () => {
           setMessage("❌ Not enough points for this promo.");
           return;
         }
-        updatedCustomer.points -= selectedPromo.price; 
-        await updateDoc(customerRef, {
-          points: updatedCustomer.points,
-        });
+        updatedCustomer.points -= selectedPromo.price;
+        await updateDoc(customerRef, { points: updatedCustomer.points });
       }
 
-      // Wallet payment
+      // Wallet payment (uses stored wallet)
       if (paymentMethod === "Wallet") {
         const walletBalance = customer.wallet || 0;
         if (walletBalance < selectedPromo.price) {
@@ -288,9 +272,16 @@ const PromoRedemption: React.FC = () => {
         pointsEarned = Math.floor(selectedPromo.price * 0.05);
         updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
 
-        await updateDoc(customerRef, {
-          points: updatedCustomer.points,
-        });
+        await updateDoc(customerRef, { points: updatedCustomer.points });
+        setTotalEarnedPoints((prev) => prev + pointsEarned);
+      }
+
+      // E-Wallet payment (no balance check)
+      if (paymentMethod === "E-Wallet") {
+        pointsEarned = Math.floor(selectedPromo.price * 0.05);
+        updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
+
+        await updateDoc(customerRef, { points: updatedCustomer.points });
         setTotalEarnedPoints((prev) => prev + pointsEarned);
       }
 
@@ -311,7 +302,9 @@ const PromoRedemption: React.FC = () => {
         ],
         amount: selectedPromo.price,
         paymentMethod,
-        promotype: selectedPromo.promoType,
+        referenceNo: paymentMethod === "E-Wallet" ? referenceNo : "",
+
+        promoType: selectedPromo.promoType,
         status: "Completed",
         pointsEarned,
         date: serverTimestamp(),
@@ -319,10 +312,7 @@ const PromoRedemption: React.FC = () => {
 
       await addDoc(collection(db, "transactions"), transactionData);
       await addDoc(collection(db, "globalTransactions"), transactionData);
-      await addDoc(
-        collection(db, "customers", customer.email, "transactions"),
-        transactionData
-      );
+      await addDoc(collection(db, "customers", customer.email, "transactions"), transactionData);
       await updateFavoriteCategory(customer.email);
 
       setMessage(
@@ -330,12 +320,12 @@ const PromoRedemption: React.FC = () => {
       );
       setSelectedPromo(null);
       setPaymentMethod("");
+      setReferenceNumber("");
     } catch (error) {
       console.error("Redeem error:", error);
       setMessage("❌ Error processing transaction.");
     }
   };
-
 
   return (
     <>
@@ -343,7 +333,7 @@ const PromoRedemption: React.FC = () => {
       <div className="promo-container">
         <h2>Promo Redemption</h2>
 
-        {/* Customer Search */}
+        {/* Search */}
         <div className="search-section">
           <input
             type="text"
@@ -351,15 +341,13 @@ const PromoRedemption: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button onClick={handleSearch}
-          style={{  background:"#693500ff",color:"white"  }}
-          >Search</button>
-          <button onClick={startCustomerScanner}
-          style={{  background:"#693500ff",color:"white"  }}
-          > Scan Customer QR</button>
-          {scannerVisible && (
-            <div id="customerReader" className="qr-scanner active"></div>
-          )}
+          <button onClick={handleSearch} style={{ background: "#693500ff", color: "white" }}>
+            Search
+          </button>
+          <button onClick={startCustomerScanner} style={{ background: "#693500ff", color: "white" }}>
+            Scan Customer QR
+          </button>
+          {scannerVisible && <div id="customerReader" className="qr-scanner active"></div>}
         </div>
 
         {/* Customer Info */}
@@ -373,7 +361,7 @@ const PromoRedemption: React.FC = () => {
             <p><strong>Favorite Category:</strong> {customer.favoriteCategory}</p>
             <p><strong>Points:</strong> {customer.points}</p>
             <p><strong>Wallet Balance:</strong> ₱{customer.wallet || 0}</p>
-            <p><strong>Total Spent:</strong> ₱{customer.totalSpent || 0}</p> {/* 🟢 display added */}
+            <p><strong>Total Spent:</strong> ₱{customer.totalSpent || 0}</p>
           </div>
         )}
 
@@ -381,26 +369,20 @@ const PromoRedemption: React.FC = () => {
         {customer && (
           <div>
             <h3>Eligible Promos</h3>
-            <button onClick={startPromoScanner}
-            style={{  background:"#693500ff",color:"white"  }}
-            > Scan Promo QR</button>
-            {promoScannerVisible && (
-              <div id="promoReader" className="qr-scanner active"></div>
-            )}
+            <button onClick={startPromoScanner} style={{ background: "#693500ff", color: "white" }}>
+              Scan Promo QR
+            </button>
+            {promoScannerVisible && <div id="promoReader" className="qr-scanner active"></div>}
             {promos.length > 0 ? (
               promos.map((promo) => (
                 <div
                   key={promo.id}
-                  className={`promo-card ${
-                    selectedPromo?.id === promo.id ? "selected" : ""
-                  }`}
+                  className={`promo-card ${selectedPromo?.id === promo.id ? "selected" : ""}`}
                   onClick={() => setSelectedPromo(promo)}
                 >
                   <h4>{promo.title}</h4>
                   <p>{promo.description}</p>
-                  <small>
-                    ₱{promo.price} | Type: {promo.promoType}
-                  </small>
+                  <small>₱{promo.price} | Type: {promo.promoType}</small>
                 </div>
               ))
             ) : (
@@ -409,22 +391,41 @@ const PromoRedemption: React.FC = () => {
           </div>
         )}
 
-        {/* Payment Method */}
+        {/* Payment Section */}
         {selectedPromo && (
           <div className="payment-section">
             <h3>Payment Method</h3>
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-            >
+            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
               <option value="">-- Select Payment --</option>
               <option value="Points">Points</option>
               <option value="Wallet">Wallet</option>
-              <option value="Cash">Over the Counter</option>
+              <option value="Cash">Cash</option>
+              <option value="E-Wallet">E-Wallet</option>
             </select>
-            <button onClick={handleRedeem}
-            style={{  background:"#693500ff",color:"white"  }}
-            >Confirm</button>
+
+            {paymentMethod === "E-Wallet" && (
+  <input
+    type="text"
+    placeholder="Enter E-Wallet Reference Number"
+    value={referenceNo}
+    onChange={(e) => setReferenceNumber(e.target.value)}
+    style={{
+      marginTop: "10px",
+      padding: "8px",
+      border: "1px solid #ccc",
+      borderRadius: "6px",
+      width: "100%",
+    }}
+  />
+)}
+
+
+            <button
+              onClick={handleRedeem}
+              style={{ background: "#693500ff", color: "white", marginTop: "10px" }}
+            >
+              Confirm
+            </button>
           </div>
         )}
 

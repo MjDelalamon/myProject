@@ -51,7 +51,7 @@ const WalletRequests: React.FC = () => {
     <>
       <Sidebar />
       <div className="wallet-summary-container">
-        <h2 className="wallet-summary-title">💰 Wallet Requests Summary</h2>
+        <h2 className="wallet-summary-title"> Wallet Requests Summary</h2>
 
         {loading ? (
           <p>Loading summary...</p>

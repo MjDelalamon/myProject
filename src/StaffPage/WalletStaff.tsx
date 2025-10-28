@@ -21,6 +21,7 @@ interface TopUpLog {
   id: string;
   method: PaymentMethod | "Over The Counter";
   amount: number;
+  referenceNo?: string; // <- optional
   date: string;
   type: string; // "manual" or "request"
 }
@@ -42,10 +43,11 @@ interface WalletRequest {
 }
 
 // ----------------- Main Component -----------------
-const WalletPageStaff: React.FC = () => {
+const WalletPage: React.FC = () => {
   const [searchMobile, setSearchMobile] = useState("");
   const [customer, setCustomer] = useState<CustomerWallet | null>(null);
   const [adjustAmount, setAdjustAmount] = useState<number>(0);
+  const [adjustReference, setAdjustReference] = useState<string>(""); // <- added
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("GCash");
   const [walletRequests, setWalletRequests] = useState<WalletRequest[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -110,6 +112,7 @@ const WalletPageStaff: React.FC = () => {
       amount: adjustAmount,
       date: new Date().toISOString().split("T")[0],
       type: "Over The Counter",
+      referenceNo: adjustReference || undefined, // <- optional
     };
 
     await updateDoc(doc(db, "customers", customer.id), {
@@ -124,6 +127,7 @@ const WalletPageStaff: React.FC = () => {
     });
 
     setAdjustAmount(0);
+    setAdjustReference(""); // reset
     alert("✅ Wallet updated successfully!");
   };
 
@@ -160,6 +164,7 @@ const WalletPageStaff: React.FC = () => {
         amount: modalAmount,
         date: new Date().toISOString().split("T")[0],
         type: "request",
+        referenceNo: selectedRequest.referenceNo, // <- added reference
       };
 
       await updateDoc(doc(db, "customers", custDoc.id), {
@@ -221,8 +226,12 @@ const WalletPageStaff: React.FC = () => {
             onChange={(e) => setSearchMobile(e.target.value)}
             placeholder="Enter mobile number"
           />
-          <button onClick={handleSearch}
-          style={{ background: "#6d3500ff", color: "white" }}>Search</button>
+          <button
+            onClick={handleSearch}
+            style={{ background: "#5b1818ff", color: "white" }}
+          >
+            Search
+          </button>
         </div>
 
         {/* Customer Info & Manual Adjustment */}
@@ -250,7 +259,18 @@ const WalletPageStaff: React.FC = () => {
                 onChange={(e) => setAdjustAmount(Number(e.target.value))}
                 placeholder="Enter amount"
               />
-              <button onClick={handleAdjustment}>Confirm Adjustment</button>
+              <input
+                type="text"
+                value={adjustReference}
+                onChange={(e) => setAdjustReference(e.target.value)}
+                placeholder="Reference No. (optional)"
+              />
+              <button
+                onClick={handleAdjustment}
+                style={{ background: "#5b1818ff", color: "white" }}
+              >
+                Confirm Adjustment
+              </button>
             </div>
 
             <div className="section">
@@ -264,6 +284,7 @@ const WalletPageStaff: React.FC = () => {
                       <th>Amount</th>
                       <th>Date</th>
                       <th>Type</th>
+                      <th>Reference No.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -276,6 +297,7 @@ const WalletPageStaff: React.FC = () => {
                           <td>₱{log.amount.toFixed(2)}</td>
                           <td>{log.date}</td>
                           <td>{log.type}</td>
+                          <td>{log.referenceNo || "-"}</td>
                         </tr>
                       ))}
                   </tbody>
@@ -287,8 +309,8 @@ const WalletPageStaff: React.FC = () => {
 
         {/* Wallet Requests */}
         <div className="section">
-          <h2> Wallet Requests</h2>
-          
+          <h2>📥 Wallet Requests</h2>
+
           {/* Filter */}
           <div style={{ marginBottom: "10px" }}>
             <label>
@@ -338,7 +360,7 @@ const WalletPageStaff: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => handleDeleteRequest(req.id)}
-                          style={{ background: "#ff5b5bff", color: "white" }}
+                          style={{ background: "#d3d3d3", color: "black" }}
                         >
                           Delete
                         </button>
@@ -380,4 +402,4 @@ const WalletPageStaff: React.FC = () => {
   );
 };
 
-export default WalletPageStaff;
+export default WalletPage;

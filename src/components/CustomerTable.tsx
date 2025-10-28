@@ -71,7 +71,7 @@ export default function CustomerTable({ customers, onView, onDelete }: Props) {
               <td>{c.points}</td>
               <td>
                 <button className="btn view" onClick={() => onView(c)}
-                  style={{  background:"#0088adff",color:"white"  }}
+                   style={{ background: "#43f220ff", color: "white" }}
                   >View</button>
                 <button className="btn delete" onClick={() => onDelete(c.id)}
                   style={{  background:"#ff4848ff",color:"white"  }}

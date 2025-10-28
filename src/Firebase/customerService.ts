@@ -49,10 +49,10 @@ export const addCustomerToFirestore = async (customer: Partial<CustomerType>) =>
       mobile: formattedMobile,
       wallet: customer.wallet || 0,
       tier: "Bronze",
-      status: "Active",
+      status: "Inactive",
       points: 0,
       qrCode: qrValue,
-      dateJoined: serverTimestamp(),
+      createdAt: serverTimestamp(),
       favoriteCategory: customer.favoriteCategory || "",
       gender: customer.gender || "",
     });

@@ -229,6 +229,49 @@ button:disabled {
   color: #8b6b4f;
 }
 
+.payment-section {
+  margin-top: 20px;
+  background: #f8f8f8;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+.payment-buttons button {
+  margin-right: 10px;
+  padding: 10px 15px;
+  border: none;
+  background: #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.payment-buttons button.active {
+  background: #69481d;
+  color: white;
+}
+
+.gcash-input {
+  margin-top: 10px;
+}
+
+.gcash-input input {
+  padding: 8px;
+  width: 100%;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.proceed-btn {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background: #69481d;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
   .columns {

@@ -11,7 +11,7 @@ export default function ViewCustomerModal({ customer, onClose }: Props) {
     <div className="modal-overlay">
       <div className="modal-content">   
         <h3>Customer Details</h3>
-        <p><strong>ID:</strong> {customer.customerNumber}</p>
+        
         <p><strong>Name:</strong> {customer.fullName}</p>
         <p><strong>Mobile:</strong> {customer.mobile}</p>
         <p><strong>Email:</strong> {customer.email}</p>

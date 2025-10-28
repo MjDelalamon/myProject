@@ -372,6 +372,7 @@ const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
       <button
         onClick={startScannerQR}
         className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+        style={{ background: "#693500ff", color: "white", marginTop: "10px" }}
       >
         📷 Scan QR to Filter
       </button>
@@ -446,7 +447,7 @@ const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
       <button
         className="complete-btn"
         onClick={() => handleComplete(order)}
-        style={{ background: "#ffca61", color: "white", marginRight: "6px" }}
+        style={{ background: "#ffca61", color: "white", }}
       >
         Complete
       </button>
@@ -496,8 +497,14 @@ const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
             Choose how to pay:
           </p>
           <div className="payment-options">
-            <button onClick={() => handlePaymentChoice("Cash")}> Cash</button>
-            <button onClick={() => handlePaymentChoice("Wallet")}> Wallet</button>
+            <button onClick={() => handlePaymentChoice("Cash")}
+              style={{ background: "#00c30dff", color: "white", marginTop: "10px" }}
+              > Cash</button>
+            <button onClick={() => handlePaymentChoice("Wallet")}
+              style={{ background: "#007cd5ff", color: "white", marginTop: "10px" }}
+              >
+              
+               Wallet Balance</button>
           </div>
           <button
             className="cancel-btn"
@@ -505,8 +512,9 @@ const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
               setShowPaymentModal(false);
               setPendingOrder(null);
             }}
+            style={{ background: "#ffffffff", color: "black" }}
           >
-            Cancel
+            Close
           </button>
         </div>
       </div>
