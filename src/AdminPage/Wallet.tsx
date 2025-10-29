@@ -283,7 +283,7 @@ const WalletPage: React.FC = () => {
                       <th>Method</th>
                       <th>Amount</th>
                       <th>Date</th>
-                      <th>Type</th>
+                      
                       <th>Reference No.</th>
                     </tr>
                   </thead>
@@ -296,7 +296,7 @@ const WalletPage: React.FC = () => {
                           <td>{log.method}</td>
                           <td>₱{log.amount.toFixed(2)}</td>
                           <td>{log.date}</td>
-                          <td>{log.type}</td>
+                          
                           <td>{log.referenceNo || "-"}</td>
                         </tr>
                       ))}

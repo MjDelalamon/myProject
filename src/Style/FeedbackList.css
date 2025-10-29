@@ -118,6 +118,9 @@
   font-style: italic;
 }
 
+/* ===== Scrollable Table Cells ===== */
+
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .feedback-container {

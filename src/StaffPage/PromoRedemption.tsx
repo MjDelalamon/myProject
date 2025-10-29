@@ -257,7 +257,7 @@ const PromoRedemption: React.FC = () => {
           return;
         }
         updatedCustomer.wallet = walletBalance - selectedPromo.price;
-        pointsEarned = Math.floor(selectedPromo.price * 0.05);
+        pointsEarned = Math.floor(selectedPromo.price * 0.02);
         updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
 
         await updateDoc(customerRef, {
@@ -269,7 +269,7 @@ const PromoRedemption: React.FC = () => {
 
       // Cash payment
       if (paymentMethod === "Cash") {
-        pointsEarned = Math.floor(selectedPromo.price * 0.05);
+        pointsEarned = Math.floor(selectedPromo.price * 0.02);
         updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
 
         await updateDoc(customerRef, { points: updatedCustomer.points });
@@ -278,7 +278,7 @@ const PromoRedemption: React.FC = () => {
 
       // E-Wallet payment (no balance check)
       if (paymentMethod === "E-Wallet") {
-        pointsEarned = Math.floor(selectedPromo.price * 0.05);
+        pointsEarned = Math.floor(selectedPromo.price * 0.02);
         updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
 
         await updateDoc(customerRef, { points: updatedCustomer.points });

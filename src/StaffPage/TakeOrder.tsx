@@ -283,7 +283,7 @@
     // 🔹 Computations
     const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
     const total = +subtotal.toFixed(2);
-    const points = +(subtotal * 0.05).toFixed(2);
+    const points = +(subtotal * 0.02).toFixed(2);
 
     // 🔹 Fetch menu from Firestore
     useEffect(() => {
@@ -365,7 +365,7 @@
         }
 
         const promoPrice = Number((promoData as any).price) || 0;
-        const earnedPoints = +(promoPrice * 0.05).toFixed(2);
+        const earnedPoints = +(promoPrice * 0.02).toFixed(2);
 
         const customerRef = doc(db, "customers", pendingPromo.email);
         const customerSnap = await getDoc(customerRef);
@@ -566,7 +566,7 @@
       // 🧾 If Customer scanned via “Scan QR for Points” (Over the Counter)
       if (customer) {
         const ref = doc(db, "customers", customer.id);
-        const earnedPoints = +(subtotal * 0.05).toFixed(2);
+        const earnedPoints = +(subtotal * 0.02).toFixed(2);
         const newPoints = +(Number(customer.points || 0) + earnedPoints).toFixed(2);
         const newTotalSpent = +(Number(customer.totalSpent || 0) + total).toFixed(2);
 
@@ -705,7 +705,7 @@
     const ref = doc(db, "customers", customer.id);
 
     // 🔹 Compute earned points (5% of subtotal)
-    const earnedPoints = +(subtotal * 0.05).toFixed(2);
+    const earnedPoints = +(subtotal * 0.02).toFixed(2);
     const newPoints = +(Number(customer.points || 0) + earnedPoints).toFixed(2);
     const newTotalSpent = +(Number(customer.totalSpent || 0) + total).toFixed(2);
 

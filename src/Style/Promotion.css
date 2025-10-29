@@ -66,7 +66,7 @@
 .filter-controls input:focus,
 .filter-controls select:focus {
   border-color: #c79f75;
-  box-shadow: 0 0 0 2px rgba(199, 159, 117, 0.15);
+  box-shadow: 0 0 0 2px rgba(249, 131, 5, 0.15);
   outline: none;
 }
 
