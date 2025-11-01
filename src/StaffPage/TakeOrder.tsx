@@ -2,7 +2,7 @@
   import { Html5QrcodeScanner } from "html5-qrcode";
   import SidebarStaff from "../components/SideBarStaff";
   import { updateFavoriteCategory } from "../functions/updateFavoriteCategory";
-
+  import {updateCustomerActivity} from "../functions/updateCustomerActivity";
   import {
     getFirestore,
     doc,
@@ -84,7 +84,8 @@
     const [walletScanResult, setWalletScanResult] = useState<string | null>(null);
     const [walletCustomer, setWalletCustomer] = useState<Customer | null>(null);
     const [showWalletScanner, setShowWalletScanner] = useState(false);
-    const [showPromoScanner, setShowPromoScanner] = useState(false);
+    const [showPromoScanner, setShowPromoScanner] = useState(false);  
+    
 
     const [promos, setPromos] = useState<any[]>([]); // list of all promos
   const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null); // selected from dropdown
@@ -178,106 +179,7 @@
   };
 
   // 🔹 Start Promo QR Scanner (for verifying claimed promotions)
-  // 🔹 Start Promo QR Scanner
-  const startPromoScanner = () => {
-    setShowPromoScanner(true);
-
-    const scanner = new Html5QrcodeScanner(
-      "promo-reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
-
-    scanner.render(
-      async (decodedText: string) => {
-        setPromoScanResult(decodedText);
-
-        try {
-          const data = JSON.parse(decodedText);
-
-          // 🔸 Validate QR type
-          if (data.type !== "PROMO") {
-            setPromoStatus("❌ Invalid QR type.");
-            setPromoDetails(null);
-            return;
-          }
-
-          // 🔸 Validate customer
-          if (data.email !== customer.id) {
-            setPromoStatus("❌ Promo QR not applicable for this customer.");
-            setPromoDetails(null);
-            return;
-          }
-
-          // 🔹 Get promo details from main promotions collection
-          const promoRef = doc(db, "promotions", data.promoId);
-          const promoSnap = await getDoc(promoRef);
-
-          if (!promoSnap.exists()) {
-            setPromoStatus("❌ Promo not found.");
-            setPromoDetails(null);
-            return;
-          }
-
-          const promoData = promoSnap.data();
-
-          // ✅ Show promo details for verification
-          setPromoDetails(promoData);
-          setPendingPromo({
-            promoId: data.promoId,
-            email: data.email,
-          });
-          setIsConfirmVisible(true);
-          setPromoStatus("✅ Promo valid! Awaiting confirmation...");
-
-        } catch (err) {
-          console.error("Error verifying promo:", err);
-          setPromoStatus("❌ Invalid QR format or verification error.");
-          setPromoDetails(null);
-        }
-
-        // Stop scanner after successful read
-        await scanner.clear().catch(() => {});
-        setShowPromoScanner(false);
-      },
-      (err: string) => console.warn(err)
-    );
-  };
-
-
-
-
-    const startPointsScanner = () => {
-      setShowPointsScanner(true);
-      const scanner = new Html5QrcodeScanner("points-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
-
-      scanner.render(
-        async (decodedText: string) => {
-          setPointsScanResult(decodedText);
-          try {
-            const ref = doc(db, "customers", decodedText);
-            const snap = await getDoc(ref);
-            if (snap.exists()) {
-              const data = snap.data() as Omit<Customer, "id">;
-              setPointsCustomer({ id: decodedText, ...data });
-            } else {
-              setPointsCustomer(null);
-            }
-          } catch {
-            setPointsCustomer(null);
-          }
-          await scanner.clear().catch(() => {});
-          setShowPointsScanner(false);
-        },
-        (err: string) => console.warn(err)
-      );
-    };
-
-    // 
-    
-
-
-
+ 
     // 🔹 Start Wallet QR Scanner
   
     // 🔹 Computations
@@ -351,339 +253,9 @@
       );
     };
 
-    const redeemPromo = async (method: "wallet" | "counter") => {
-      if (!pendingPromo) return;
-
-      try {
-        const promoRef = doc(db, `customers/${pendingPromo.email}/claimedPromos/${pendingPromo.promoId}`);
-        const promoSnap = await getDoc(promoRef);
-        const promoData = promoSnap.data();
-
-        if (!promoData) {
-          setPromoStatus("❌ Promo not found.");
-          return;
-        }
-
-        const promoPrice = Number((promoData as any).price) || 0;
-        const earnedPoints = +(promoPrice * 0.02).toFixed(2);
-
-        const customerRef = doc(db, "customers", pendingPromo.email);
-        const customerSnap = await getDoc(customerRef);
-
-        if (!customerSnap.exists()) {
-          setPromoStatus("❌ Customer not found in database.");
-          return;
-        }
-
-        const customerData = customerSnap.data();
-        const walletBalance = Number(customerData.wallet || 0);
-        const currentPoints = Number(customerData.points || 0);
-
-        // 🔹 Wallet Redeem
-        if (method === "wallet") {
-          if (walletBalance < promoPrice) {
-            setPromoStatus(
-              `❌ Insufficient wallet balance. Available: ₱${walletBalance}, Required: ₱${promoPrice}`
-            );
-            return;
-          }
-
-          const newWallet = +(walletBalance - promoPrice).toFixed(2);
-          const newPoints = +(currentPoints + earnedPoints).toFixed(2);
-          const newTotalSpent = +(Number(customerData.totalSpent || 0) + promoPrice).toFixed(2);
-
-          await updateDoc(customerRef, {
-            wallet: newWallet,
-            points: newPoints,
-            totalSpent: newTotalSpent,
-          });
-
-          await addDoc(collection(db, "customers", pendingPromo.email, "transactions"), {
-            transactionId: `PROMO-${Date.now()}`,
-            promoTitle: (promoData as any).title || "Promo",
-            promoId: pendingPromo.promoId,
-            type: "promo-redemption",
-            method: "wallet",
-            amount: promoPrice,
-            earnedPoints,
-            status: "Completed",
-            redeemedAt: Timestamp.now(),
-          });
-
-          setPromoStatus(`🎉 Promo redeemed via Wallet! ₱${promoPrice} deducted. +${earnedPoints} points earned!`);
-        }
-
-        // 🔹 Counter Redeem
-        if (method === "counter") {
-          const newPoints = +(currentPoints + earnedPoints).toFixed(2);
-          const newTotalSpent = +(Number(customerData.totalSpent || 0) + promoPrice).toFixed(2);
-
-          await updateDoc(customerRef, {
-            points: newPoints,
-            totalSpent: newTotalSpent,
-          });
-
-          await addDoc(collection(db, "customers", pendingPromo.email, "transactions"), {
-            transactionId: `PROMO-${Date.now()}`,
-            promoTitle: (promoData as any).title || "Promo",
-            promoId: pendingPromo.promoId,
-            type: "promo-redemption",
-            method: "counter",
-            amount: promoPrice,
-            earnedPoints,
-            status: "Completed",
-            redeemedAt: Timestamp.now(),
-          });
-
-          setPromoStatus(`🎟️ Promo redeemed Over the Counter! +${earnedPoints} points earned!`);
-        }
-
-        // 🔹 Log globally and per-customer
-        const redeemedPromoData = {
-          promoId: pendingPromo.promoId,
-          email: pendingPromo.email,
-          title: (promoData as any).title || "",
-          price: promoPrice,
-          earnedPoints,
-          redeemedVia: method,
-          redeemedAt: Timestamp.now(),
-        };
-
-        // 🔹 Save to global collection
-        await addDoc(collection(db, "redeemedPromos"), redeemedPromoData);
-
-        // 🔹 Save to the customer's own collection
-        await addDoc(collection(db, `customers/${pendingPromo.email}/redeemedPromos`), redeemedPromoData);
-
-        await updateDoc(promoRef, { isUsed: true });
-
-        setPromoStatus("✅ Promo redeemed and marked as used!");
-      } catch (err) {
-        console.error("Error redeeming promo:", err);
-        setPromoStatus("❌ Error redeeming promo.");
-      }
-
-      setPendingPromo(null);
-      setIsConfirmVisible(false);
-      setPromoDetails(null);
-    };
-
+   
     // 🔹 Place Order
-    const placeOrder = async () => {
-      if (items.length === 0) return alert("Add at least one item.");
-
-      const now = new Date();
-      const dateStr = now.toISOString().slice(0, 10);
-      const timestamp = Timestamp.fromDate(now);
-      const transactionId = `ORD-${Date.now()}`;
-
-      // 🏦 If Wallet Customer
-      if (walletCustomer) {
-        if ((walletCustomer.wallet || 0) < total) {
-          alert(`❌ Insufficient wallet balance. Available: ₱${walletCustomer.wallet}, Required: ₱${total}`);
-          return;
-        }
-
-        const ref = doc(db, "customers", walletCustomer.id);
-        const newWallet = +(Number(walletCustomer.wallet) - total).toFixed(2);
-        const newPoints = +(Number(walletCustomer.points || 0) + points).toFixed(2);
-        const newTotalSpent = +(Number(walletCustomer.totalSpent || 0) + total).toFixed(2);
-
-        const logEntry = {
-          transactionId,
-          amount: total,
-          date: dateStr,
-          earnedPoints: points,
-          items,
-          type: "wallet",
-          method: "Wallet",
-          status: "Completed",
-          paymentMethod: "Wallet",
-        };
-
-        // 🔸 Update customer wallet, points, and totalSpent
-        await updateDoc(ref, {
-          wallet: newWallet,
-          points: +newPoints.toFixed(2),
-          totalSpent: +newTotalSpent.toFixed(2),
-        });
-
-        // 🔸 Save inside customer's subcollection
-        await addDoc(collection(db, "customers", walletCustomer.id, "transactions"), {
-          orderId: transactionId,
-          amount: total,
-          paymentMethod: "Wallet",
-          type: "wallet",
-          status: "Completed",
-          date: timestamp,
-          items,
-        });
-
-        // 🔸 Also save in global `transactions`
-        await addDoc(collection(db, "transactions"), {
-          customerId: walletCustomer.id,
-          fullName: walletCustomer.fullName,
-          orderId: transactionId,
-          amount: total,
-          paymentMethod: "Wallet",
-          type: "wallet",
-          status: "Completed",
-          date: timestamp,
-          items,
-        });
-        await updateFavoriteCategory(walletCustomer.id);
-        alert(`✅ Order placed! ₱${total} deducted from wallet. ${points} points added to ${walletCustomer.fullName}.`);
-
-        setOrders((prev) => [
-          {
-            id: transactionId,
-            items,
-            subtotal,
-            total,
-            pointsEarned: points,
-            customerId: walletCustomer.id,
-            placedAt: now.toISOString(),
-            paidByWallet: true,
-          },
-          ...prev,
-        ]);
-
-        setWalletCustomer({
-          ...walletCustomer,
-          wallet: newWallet,
-          points: +newPoints.toFixed(2),
-          logs: walletCustomer.logs ? [...walletCustomer.logs, logEntry] : [logEntry],
-        });
-
-        // Reset forms
-        setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
-        setCustomer(null);
-        setWalletScanResult(null);
-        setWalletCustomer(null);
-        return;
-      }
-
-      // 🧾 If Customer scanned via “Scan QR for Points” (Over the Counter)
-      if (customer) {
-        const ref = doc(db, "customers", customer.id);
-        const earnedPoints = +(subtotal * 0.02).toFixed(2);
-        const newPoints = +(Number(customer.points || 0) + earnedPoints).toFixed(2);
-        const newTotalSpent = +(Number(customer.totalSpent || 0) + total).toFixed(2);
-
-        await updateDoc(ref, {
-          points: newPoints,
-          totalSpent: +newTotalSpent.toFixed(2),
-        });
-
-        // 🔸 Save to customer's transactions
-        await addDoc(collection(db, "customers", customer.id, "transactions"), {
-          orderId: transactionId,
-          amount: total,
-          paymentMethod: "Over the Counter",
-          type: "points-earned",
-          status: "Completed",
-          date: timestamp,
-          items,
-        });
-
-        // 🔸 Also save globally
-        await addDoc(collection(db, "transactions"), {
-          customerId: customer.id,
-          fullName: customer.fullName,
-          orderId: transactionId,
-          amount: total,
-          paymentMethod: "Over the Counter",
-          type: "points-earned",
-          status: "Completed",
-          date: timestamp,
-          items,
-        });
-
-        await updateFavoriteCategory(customer.id);
-
-        alert(`✅ Order placed (Over the Counter)! ${earnedPoints} points added to ${customer.fullName}.`);
-
-        setOrders((prev) => [
-          {
-            id: transactionId,
-            items,
-            subtotal,
-            total,
-            pointsEarned: earnedPoints,
-            customerId: customer.id,
-            placedAt: now.toISOString(),
-            paidByWallet: false,
-          },
-          ...prev,
-        ]);
-
-        setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
-        setCustomer(null);
-        setWalletCustomer(null);
-        setWalletScanResult(null);
-        return;
-      }
-
-      // 🪙 If Points Payment Customer (pointsCustomer previously scanned)
-      if (pointsCustomer) {
-        const pointsValue = pointsCustomer.points || 0;
-        const totalPointsRequired = total; // 1 point = ₱1
-        if (pointsValue < totalPointsRequired) {
-          alert(`❌ Insufficient points. Available: ${pointsValue}, Required: ${totalPointsRequired}`);
-          return;
-        }
-
-        const newPoints = +(pointsValue - totalPointsRequired).toFixed(2);
-        const newTotalSpent = +(Number(pointsCustomer.totalSpent || 0) + total).toFixed(2);
-
-        const ref = doc(db, "customers", pointsCustomer.id);
-        await updateDoc(ref, {
-          points: newPoints,
-          totalSpent: +newTotalSpent.toFixed(2),
-        });
-
-        const orderId = `ORD-${Date.now()}`;
-        await addDoc(collection(db, "transactions"), {
-          customerId: pointsCustomer.id,
-          fullName: pointsCustomer.fullName,
-          orderId,
-          amount: total,
-          paymentMethod: "Points",
-          type: "points-payment",
-          status: "Completed",
-          date: Timestamp.now(),
-          items,
-          pointsEarned:0
-        });
-
-        await addDoc(collection(db, "customers", pointsCustomer.id, "transactions"), {
-          customerId: pointsCustomer.id,
-          fullName: pointsCustomer.fullName,
-          orderId,
-          amount: total,
-          paymentMethod: "Points",
-          type: "points-payment",
-          status: "Completed",
-          date: Timestamp.now(),
-          items,
-          pointsEarned: 0
-        });
-
-        await updateFavoriteCategory(pointsCustomer.id);
-
-        alert(`✅ Order placed! ${total} points deducted from ${pointsCustomer.fullName}.`);
-
-        setPointsCustomer(null);
-        setPointsScanResult(null);
-        setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
-        return;
-      }
-
-      
-
-      alert("✅ Order placed for Walk-in Customer (No points earned).");
-      setItems([{ id: 1, name: "", price: 0, qty: 1 }]);
-    };
+   
 
     // Handle paying over the counter for a linked customer (cash)
     // ✅ Handle Cash or GCash Payment
@@ -749,6 +321,7 @@
 
     // 🔹 Update favorite category if needed
     await updateFavoriteCategory(customer.id);
+    await updateCustomerActivity(customer.id);
 
     alert(
       `✅ Paid using ${paymentMethod === "cash" ? "Cash" : "E-Wallet"}${
@@ -811,6 +384,9 @@
         items,
         pointsEarned: 0 
       });
+       await updateFavoriteCategory(customer.id);
+
+      await updateCustomerActivity(customer.id);
 
       alert(`✅ Paid using Points! ${total} points deducted.`);
       setCustomer({ ...customer, points: newPoints });
@@ -863,6 +439,7 @@
       });
 
       await updateFavoriteCategory(customer.id);
+      await updateCustomerActivity(customer.id);
 
       alert(`✅ Paid using Wallet! ₱${total} deducted. ${points} points earned.`);
       setCustomer({ ...customer, wallet: newWallet, points: newPoints });

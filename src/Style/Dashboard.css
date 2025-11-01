@@ -245,7 +245,91 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
+  
 }
+
+/* 🏆 Top Customers Table Styles */
+.top-customers {
+  margin-top: 30px;
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.top-customers h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.top-customers table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.top-customers th,
+.top-customers td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.top-customers th {
+  background-color: #f5f7fa;
+  font-weight: 600;
+  color: #555;
+}
+
+.top-customers tr:hover {
+  background-color: #f9fafb;
+  transition: background-color 0.3s ease;
+}
+
+.top-customers td {
+  color: #444;
+}
+
+@media (max-width: 768px) {
+  .top-customers table,
+  .top-customers thead,
+  .top-customers tbody,
+  .top-customers th,
+  .top-customers td,
+  .top-customers tr {
+    display: block;
+  }
+
+  .top-customers thead tr {
+    display: none;
+  }
+
+  .top-customers tr {
+    margin-bottom: 15px;
+    border-bottom: 2px solid #eee;
+  }
+
+  .top-customers td {
+    padding: 10px;
+    text-align: right;
+    position: relative;
+  }
+
+  .top-customers td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #666;
+  }
+}
+
 
 
 @keyframes popIn {

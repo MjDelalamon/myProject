@@ -55,6 +55,10 @@ export const addCustomerToFirestore = async (customer: Partial<CustomerType>) =>
       createdAt: serverTimestamp(),
       favoriteCategory: customer.favoriteCategory || "",
       gender: customer.gender || "",
+      totalTransactions: 0,
+      totalVisits: 0,
+      LastVisit: null,
+      totalSpent: 0,
     });
 
     return { success: true, id: formattedEmail, qrValue };
