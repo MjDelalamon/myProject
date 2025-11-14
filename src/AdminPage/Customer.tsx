@@ -92,6 +92,8 @@ function Customer() {
       <Sidebar />
       <div className="customer-container">
         <h2 className="title">Customer Management</h2>
+        <button className="btn add" onClick={() => setShowAddModal(true)}
+            style={{ background:"#5b1818ff",color:"white"  }}>+ Add Customer</button>
 
         {/* Filters + Add */}
         <div className="filters">
@@ -112,8 +114,7 @@ function Customer() {
             value={filters.mobile}
             onChange={e => setFilters(f => ({ ...f, mobile: e.target.value }))}
           />
-          <button className="btn add" onClick={() => setShowAddModal(true)}
-            style={{ marginLeft: 10, background:"#5b1818ff",color:"white"  }}>+ Add Customer</button>
+          
         </div>
 
         {/* Customer Table */}

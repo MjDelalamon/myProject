@@ -21,12 +21,15 @@ import {
 } from "recharts";
 import { collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../Firebase/firebaseConfig";
+import { Timestamp } from "firebase/firestore"; // kung kailangan mo sa date conversion
 
 function Dashboard() {
   const [totalSales, setTotalSales] = useState(0);
   const [topCategories, setTopCategories] = useState<{ name: string; count: number }[]>([]);
   const [dailyPaymentData, setDailyPaymentData] = useState<any[]>([]);
   const [paymentBreakdown, setPaymentBreakdown] = useState<any[]>([]);
+  const [filteredTopCustomers, setFilteredTopCustomers] = useState<any[]>([]);
+
   const [topupChartData, setTopupChartData] = useState<any[]>([
     { name: "Pending", value: 0 },
     { name: "Approved", value: 0 },
@@ -43,63 +46,55 @@ function Dashboard() {
 
   // 🟢 Main Dashboard Loader
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        const {
-          totalSales,
-          topCategories,
-          dailyPaymentData,
-          paymentBreakdown,
-        } = await fetchDashboardData(filter);
+  const loadDashboardData = async () => {
+    try {
+      const {
+        totalSales,
+        topCategories,
+        dailyPaymentData,
+        paymentBreakdown,
+      } = await fetchDashboardData(filter);
 
-        setTotalSales(totalSales || 0);
-        setTopCategories(topCategories || []);
-        setDailyPaymentData(dailyPaymentData || []);
-        setPaymentBreakdown(paymentBreakdown || []);
+      setTotalSales(totalSales || 0);
+      setTopCategories(topCategories || []);
+      setDailyPaymentData(dailyPaymentData || []);
+      setPaymentBreakdown(paymentBreakdown || []);
 
-        // ⭐ Fetch promoType data from Firestore
-        const promoSnap = await getDocs(collection(db, "globalTransactions"));
-        const promoCounts: Record<string, number> = {};
+      // ⭐ Fetch promoType data from Firestore
+      const promoSnap = await getDocs(collection(db, "globalTransactions"));
+      const promoCounts: Record<string, number> = {};
 
-        promoSnap.forEach((doc) => {
-          const data = doc.data();
-          if (data.promotype) {
-            const type = data.promotype.trim();
-            promoCounts[type] = (promoCounts[type] || 0) + 1;
-          }
-        });
-
-        const promoArray = Object.keys(promoCounts).map((key) => ({
-          name: key,
-          count: promoCounts[key],
-        }));
-
-        setPromoTypeData(promoArray);
-
-        // ✅ Loop through all customers and update each one's activity
-        const customersSnap = await getDocs(collection(db, "customers"));
-        for (const customerDoc of customersSnap.docs) {
-          await updateCustomerActivity(customerDoc.id);
+      promoSnap.forEach((doc) => {
+        const data = doc.data();
+        if (data.promotype) {
+          const type = data.promotype.trim();
+          promoCounts[type] = (promoCounts[type] || 0) + 1;
         }
+      });
 
-        console.log("✅ All customer activities updated successfully!");
+      const promoArray = Object.keys(promoCounts).map((key) => ({
+        name: key,
+        count: promoCounts[key],
+      }));
 
-        // 🏆 Fetch and compute Top Customers
-        const topCustomersData = customersSnap.docs
-          .map((doc) => ({ id: doc.id, ...doc.data() }))
-          .filter((cust: any) => cust.totalTransactions > 0)
-          .sort((a: any, b: any) => b.totalTransactions - a.totalTransactions)
-          .slice(0, 5); // top 5
+      setPromoTypeData(promoArray);
 
-        setTopCustomers(topCustomersData);
+      // ✅ Fetch Top Customers directly from topCustomers collection
+      const topSnap = await getDocs(collection(db, "topCustomers"));
+      const topData = topSnap.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => a.rank - b.rank); // ensure correct order
 
-      } catch (error) {
-        console.error("❌ Error fetching dashboard data:", error);
-      }
-    };
+      setTopCustomers(topData);
 
-    loadDashboardData();
-  }, [filter]);
+    } catch (error) {
+      console.error("❌ Error fetching dashboard data:", error);
+    }
+  };
+
+  loadDashboardData();
+}, [filter]);
+
 
   // 🟢 Realtime listener for wallet request counts
   useEffect(() => {
@@ -143,7 +138,7 @@ function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  const COLORS = ["#f84f00ff", "#f2ff00ff", "#f30010ff", "#00e1ffff", "#0008fdff", "#ff00f2ff"];
+  const COLORS = ["#f83200ff", "#f2ff00ff", "#00ff48ff", "#00e1ffff", "#0008fdff", "#ff00f2ff"];
 
   const paymentMethods =
     dailyPaymentData.length > 0
@@ -328,7 +323,7 @@ function Dashboard() {
                   <th style={{ padding: "8px" }}>Name</th>
                   <th style={{ padding: "8px" }}>Tier</th>
                   <th style={{ padding: "8px" }}>Total Transactions</th>
-                  <th style={{ padding: "8px" }}>Last Visit</th>
+                  <th style={{ padding: "8px" }}>Total Points Earned</th>
                   <th style={{ padding: "8px" }}>favorite Category</th>
                   <th style={{ padding: "8px" }}>Total Visit </th>
 
@@ -354,9 +349,7 @@ function Dashboard() {
             {cust.totalTransactions?.toLocaleString() || 0}
           </td>
           <td>
-            {cust.lastVisit
-              ? new Date(cust.lastVisit.seconds * 1000).toLocaleDateString()
-              : "—"}
+            {cust.totalPointsEarned?.toLocaleString() || 0}
           </td>
           <td>{cust.favoriteCategory || "N/A"}</td>
           <td style={{ textAlign: "center" }}>

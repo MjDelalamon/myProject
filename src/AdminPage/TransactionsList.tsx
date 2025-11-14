@@ -46,7 +46,7 @@ const TransactionsList: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<"Newest" | "Oldest">("Newest");
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<
-    "All" | "Points" | "Wallet" | "Cash"
+    "All" | "Points" | "Wallet" | "Cash" | "E-Wallet"
   >("All");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -186,9 +186,10 @@ const TransactionsList: React.FC = () => {
             onChange={(e) => setPaymentFilter(e.target.value as any)}
           >
             <option value="All">All Payment Methods</option>
-            <option value="Wallet">Wallet</option>
-            <option value="Points">Points</option>
-            <option value="Cash">Over the Counter</option>
+            <option value="Wallet">Wallet Balance</option>
+            <option value="Points">Points Balance</option>
+            <option value="Cash">Cash</option>
+            <option value="E-Wallet">E-Wallet</option>
           </select>
 
           <input

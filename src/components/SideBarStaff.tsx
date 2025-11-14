@@ -66,9 +66,9 @@ function SidebarStaff() {
             }
           >
             Order
-            {pendingOrderCount > 0 && (
-              <span className=" order-badge">{pendingOrderCount}</span>
-            )}
+              {pendingOrderCount > 0 && (
+                <span className=" order-badge">{pendingOrderCount}</span>
+              )}
           </NavLink>
 
           <div className="sidebar-separator"></div>

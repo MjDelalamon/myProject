@@ -541,7 +541,7 @@
               <div>
                 <input type="text" placeholder="Enter mobile number" value={mobileSearch} onChange={(e) => setMobileSearch(e.target.value)} />
                 <button onClick={searchCustomerByMobile}
-                style={{ marginLeft: 10, background:"#ffffffff",color:"black"  }}
+                style={{  background:"#ffffffff",color:"black"  }}
                 >🔍 Search</button>
               </div>
 

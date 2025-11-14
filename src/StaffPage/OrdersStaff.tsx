@@ -1,7 +1,8 @@
-  import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
   import { Html5QrcodeScanner } from "html5-qrcode";
   import SidebarStaff from "../components/SideBarStaff";
   import { updateFavoriteCategory } from "../functions/updateFavoriteCategory";
+  import { increment } from "firebase/firestore";
 
   import {
     collection,
@@ -139,42 +140,56 @@
     };
 
     const completeOrderWithPoints = async (
-      order: Order,
-      fullName: string,
-      pointsUsed: number
-    ) => {
-      const customerRef = doc(db, "customers", order.customerEmail);
-      const customerSnap = await getDoc(customerRef);
-      const customerData = customerSnap.data();
+  order: Order,
+  fullName: string,
+  pointsUsed: number
+) => {
+  const customerRef = doc(db, "customers", order.customerEmail);
+  const customerSnap = await getDoc(customerRef);
 
-      await updateDoc(customerRef, {
-        points: (customerData.points || 0) - pointsUsed,
-        totalSpent: (customerData.totalSpent || 0) + order.amount,
-        updatedAt: serverTimestamp(),
-      });
+  if (!customerSnap.exists()) {
+    alert("❌ Customer not found.");
+    return;
+  }
 
-      await updateDoc(doc(db, "orders", order.id), {
-        status: "Completed",
-        paymentMethod: pointsUsed === order.amount ? "Points" : "Mix",
-        updatedAt: serverTimestamp(),
-      });
+  const customerData = customerSnap.data()!;
+  const currentPoints = customerData.points || 0;
 
-      await createTransactionRecords({
-        customerEmail: order.customerEmail,
-        customerName: fullName,
-        orderId: order.id,
-        amount: order.amount,
-        paymentMethod: pointsUsed === order.amount ? "Points" : "Mix",
-        type: pointsUsed === order.amount ? "points-used" : "mixed-payment",
-        status: "Completed",
-        date: serverTimestamp(),
-        items: order.items,
-      });
+  // Calculate new points balance
+  const newPointsBalance = Math.round((currentPoints - pointsUsed) * 100) / 100;
 
-      await updateFavoriteCategory(order.customerEmail);
-      alert("✅ Order completed successfully.");
-      fetchOrders(filteredCustomer);
-    };
+  // Update points only (no cash spent)
+  await updateDoc(customerRef, {
+    points: newPointsBalance,
+    totalSpent: increment(0), // no cash spent
+    updatedAt: serverTimestamp(),
+  });
+
+  // Update order status
+  await updateDoc(doc(db, "orders", order.id), {
+    status: "Completed",
+    paymentMethod: "Points",
+    updatedAt: serverTimestamp(),
+  });
+
+  // Create transaction records
+  await createTransactionRecords({
+    customerEmail: order.customerEmail,
+    customerName: fullName,
+    orderId: order.id,
+    amount: order.amount,
+    paymentMethod: "Points",
+    type: "points-used",
+    status: "Completed",
+    date: serverTimestamp(),
+    items: order.items,
+  });
+
+  await updateFavoriteCategory(order.customerEmail);
+  alert("✅ Order completed successfully.");
+  fetchOrders(filteredCustomer);
+};
+
 
     const handleComplete = async (order: Order) => {
     try {
@@ -208,90 +223,87 @@
     }
   };
 
-  const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
-    if (!pendingOrder) return;
+const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
+  if (!pendingOrder) return;
 
-    const customerRef = doc(db, "customers", pendingOrder.customerEmail);
-    const customerSnap = await getDoc(customerRef);
-    const customerData = customerSnap.data();
-    const customerName = customerData.fullName || "N/A";
+  const customerRef = doc(db, "customers", pendingOrder.customerEmail);
+  const customerSnap = await getDoc(customerRef);
 
-    const pointsBalance = customerData.points || 0;
-    const walletBalance = customerData.wallet || 0;
-    const orderCost = pendingOrder.amount;
+  if (!customerSnap.exists()) {
+    alert("❌ Customer not found.");
+    return;
+  }
 
-    let pointsUsed = Math.min(pointsBalance, orderCost);
-    let remainingAmount = orderCost - pointsUsed;
+  const customerData = customerSnap.data()!;
+  const customerName = customerData.fullName || "N/A";
+  const pointsBalance = customerData.points || 0;
+  const walletBalance = customerData.wallet || 0;
+  const orderCost = pendingOrder.amount;
 
-    if (choice === "Cash") {
-      // Cash covers the remaining after points
-      await updateDoc(customerRef, {
-        points: pointsBalance - pointsUsed,
-        totalSpent: (customerData.totalSpent || 0) + orderCost,
-        updatedAt: serverTimestamp(),
-      });
+  const pointsUsed = Math.min(pointsBalance, orderCost);
+  const remainingAmount = orderCost - pointsUsed;
 
-      await updateDoc(doc(db, "orders", pendingOrder.id), {
-        status: "Completed",
-        paymentMethod: pointsUsed > 0 ? "Points + Cash" : "Cash",
-        updatedAt: serverTimestamp(),
-      });
+  // Determine payment method string
+  const paymentMethodStr = choice === "Cash"
+    ? pointsUsed > 0 ? "Points + Cash" : "Cash"
+    : pointsUsed > 0 ? "Points + Wallet" : "Wallet";
 
-      await createTransactionRecords({
-        customerEmail: pendingOrder.customerEmail,
-        customerName,
-        orderId: pendingOrder.id,
-        amount: orderCost,
-        paymentMethod: pointsUsed > 0 ? "Points + Cash" : "Cash",
-        type: pointsUsed > 0 ? "points-cash" : "cash",
-        status: "Completed",
-        date: serverTimestamp(),
-        items: pendingOrder.items,
-      });
+  // Check Wallet balance if using Wallet
+  if (choice === "Wallet" && walletBalance < remainingAmount) {
+    alert("❌ Not enough wallet balance to complete payment!");
+    return;
+  }
 
-      alert(`✅ Order completed using ${pointsUsed} points + ₱${remainingAmount} cash.`);
+  // Calculate new balances
+  const newPointsBalance = Math.round((pointsBalance - pointsUsed) * 100) / 100;
+  const newWalletBalance = choice === "Wallet"
+    ? Math.round((walletBalance - remainingAmount) * 100) / 100
+    : walletBalance;
 
-    } else if (choice === "Wallet") {
-      // Wallet covers the remaining after points
-      if (walletBalance < remainingAmount) {
-        alert("❌ Not enough wallet balance to complete payment!");
-        return;
-      }
-
-      await updateDoc(customerRef, {
-        points: pointsBalance - pointsUsed,
-        wallet: walletBalance - remainingAmount,
-        totalSpent: (customerData.totalSpent || 0) + orderCost,
-        updatedAt: serverTimestamp(),
-      });
-
-      await updateDoc(doc(db, "orders", pendingOrder.id), {
-        status: "Completed",
-        paymentMethod: pointsUsed > 0 ? "Points + Wallet" : "Wallet",
-        paidByWallet: true,
-        updatedAt: serverTimestamp(),
-      });
-
-      await createTransactionRecords({
-        customerEmail: pendingOrder.customerEmail,
-        customerName,
-        orderId: pendingOrder.id,
-        amount: orderCost,
-        paymentMethod: pointsUsed > 0 ? "Points + Wallet" : "Wallet",
-        type: pointsUsed > 0 ? "points-wallet" : "wallet",
-        status: "Completed",
-        date: serverTimestamp(),
-        items: pendingOrder.items,
-      });
-
-      alert(`✅ Order completed using ${pointsUsed} points + ₱${remainingAmount} from wallet.`);
-    }
-
-    // Reset modal
-    setShowPaymentModal(false);
-    setPendingOrder(null);
-    fetchOrders(filteredCustomer);
+  // Update customer data atomically
+  const updateData: any = {
+    points: newPointsBalance,
+    totalSpent: increment(remainingAmount), // only cash/wallet counts
+    updatedAt: serverTimestamp(),
   };
+  if (choice === "Wallet") {
+    updateData.wallet = newWalletBalance;
+  }
+
+  await updateDoc(customerRef, updateData);
+
+  // Update order status
+  await updateDoc(doc(db, "orders", pendingOrder.id), {
+    status: "Completed",
+    paymentMethod: paymentMethodStr,
+    ...(choice === "Wallet" ? { paidByWallet: true } : {}),
+    updatedAt: serverTimestamp(),
+  });
+
+  // Create transaction records
+  await createTransactionRecords({
+    customerEmail: pendingOrder.customerEmail,
+    customerName,
+    orderId: pendingOrder.id,
+    amount: orderCost,
+    paymentMethod: paymentMethodStr,
+    type: pointsUsed > 0
+      ? choice === "Cash" ? "points-cash" : "points-wallet"
+      : choice.toLowerCase(),
+    status: "Completed",
+    date: serverTimestamp(),
+    items: pendingOrder.items,
+    pointsEarned: 0, // optionally calculate earned points here
+  });
+
+  alert(`✅ Order completed using ${pointsUsed} points${remainingAmount > 0 ? ` + ₱${remainingAmount} ${choice}` : ""}.`);
+
+  // Reset modal
+  setShowPaymentModal(false);
+  setPendingOrder(null);
+  fetchOrders(filteredCustomer);
+};
+
 
 
     const handleCancel = async (orderId: string, customerEmail: string) => {

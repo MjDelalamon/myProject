@@ -4,6 +4,7 @@ import SidebarStaff from "../components/SideBarStaff";
 import "../Style/PromoRedemption.css";
 import { v4 as uuidv4 } from "uuid";
 import { updateFavoriteCategory } from "../functions/updateFavoriteCategory";
+import { updateCustomerActivity } from "../functions/updateCustomerActivity";
 import { getTotalEarnedPoints } from "../functions/pointsUtils";
 import {
   collection,
@@ -28,6 +29,8 @@ interface Promotion {
   promoType: "global" | "personalized";
   applicableTiers: string[];
   category?: string;
+  personalizedOption?: "specific" | "all";
+  specificCustomerId?: string;
 }
 
 interface Customer {
@@ -82,7 +85,7 @@ const PromoRedemption: React.FC = () => {
 
       const data = customerDoc.data() as Customer;
       setCustomer(data);
-      fetchEligiblePromos(data);
+      await fetchEligiblePromos(data);
 
       const totalPoints = await getTotalEarnedPoints(data.email);
       setTotalEarnedPoints(totalPoints);
@@ -113,7 +116,7 @@ const PromoRedemption: React.FC = () => {
 
         const data = customerSnap.data() as Customer;
         setCustomer(data);
-        fetchEligiblePromos(data);
+        await fetchEligiblePromos(data);
 
         const totalPoints = await getTotalEarnedPoints(data.email);
         setTotalEarnedPoints(totalPoints);
@@ -144,11 +147,16 @@ const PromoRedemption: React.FC = () => {
       const eligiblePromos = allPromos.filter((p) => {
         const startOk = !p.startDate || new Date(p.startDate) <= now;
         const endOk = !p.endDate || new Date(p.endDate) >= now;
-        const tierOk = p.applicableTiers?.length === 0 || p.applicableTiers?.includes(customerData.tier);
-        const categoryOk =
-          p.promoType === "global" ||
-          (p.promoType === "personalized" && p.category === customerData.favoriteCategory);
-        return startOk && endOk && tierOk && categoryOk;
+        const tierOk = !p.applicableTiers || p.applicableTiers.length === 0 || p.applicableTiers.includes(customerData.tier);
+
+        let personalizedOk = true;
+        if (p.promoType === "personalized") {
+          if (p.personalizedOption === "specific") {
+            personalizedOk = p.specificCustomerId === customerData.email;
+          }
+        }
+
+        return startOk && endOk && tierOk && personalizedOk;
       });
 
       setPromos(eligiblePromos);
@@ -193,10 +201,13 @@ const PromoRedemption: React.FC = () => {
         }
 
         const promo = promoSnap.data() as Promotion;
-        const eligible =
-          promo.applicableTiers?.includes(customer?.tier || "") &&
-          (promo.promoType === "global" ||
-            (promo.promoType === "personalized" && promo.category === customer?.favoriteCategory));
+        let eligible = !promo.applicableTiers || promo.applicableTiers.length === 0 || promo.applicableTiers.includes(customer?.tier || "");
+
+        if (promo.promoType === "personalized") {
+          if (promo.personalizedOption === "specific") {
+            eligible = eligible && promo.specificCustomerId === customer?.email;
+          }
+        }
 
         if (eligible) {
           setSelectedPromo({ id: qrData.promoId, ...promo });
@@ -224,22 +235,21 @@ const PromoRedemption: React.FC = () => {
     }
 
     if (paymentMethod === "E-Wallet" && !referenceNo.trim()) {
-  setMessage("Please enter the E-Wallet reference number.");
-  return;
-}
-
+      setMessage("Please enter the E-Wallet reference number.");
+      return;
+    }
 
     try {
       const customerRef = doc(db, "customers", customer.email);
       const updatedCustomer = { ...customer };
       let pointsEarned = 0;
 
-      // 🟢 totalSpent always updates
+      // Update totalSpent
       const newTotalSpent = (updatedCustomer.totalSpent || 0) + selectedPromo.price;
       updatedCustomer.totalSpent = newTotalSpent;
       await updateDoc(customerRef, { totalSpent: newTotalSpent });
 
-      // Points payment
+      // Payment logic
       if (paymentMethod === "Points") {
         if (customer.points < selectedPromo.price) {
           setMessage("❌ Not enough points for this promo.");
@@ -249,7 +259,6 @@ const PromoRedemption: React.FC = () => {
         await updateDoc(customerRef, { points: updatedCustomer.points });
       }
 
-      // Wallet payment (uses stored wallet)
       if (paymentMethod === "Wallet") {
         const walletBalance = customer.wallet || 0;
         if (walletBalance < selectedPromo.price) {
@@ -267,20 +276,9 @@ const PromoRedemption: React.FC = () => {
         setTotalEarnedPoints((prev) => prev + pointsEarned);
       }
 
-      // Cash payment
-      if (paymentMethod === "Cash") {
+      if (paymentMethod === "Cash" || paymentMethod === "E-Wallet") {
         pointsEarned = Math.floor(selectedPromo.price * 0.02);
         updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
-
-        await updateDoc(customerRef, { points: updatedCustomer.points });
-        setTotalEarnedPoints((prev) => prev + pointsEarned);
-      }
-
-      // E-Wallet payment (no balance check)
-      if (paymentMethod === "E-Wallet") {
-        pointsEarned = Math.floor(selectedPromo.price * 0.02);
-        updatedCustomer.points = (updatedCustomer.points || 0) + pointsEarned;
-
         await updateDoc(customerRef, { points: updatedCustomer.points });
         setTotalEarnedPoints((prev) => prev + pointsEarned);
       }
@@ -303,7 +301,6 @@ const PromoRedemption: React.FC = () => {
         amount: selectedPromo.price,
         paymentMethod,
         referenceNo: paymentMethod === "E-Wallet" ? referenceNo : "",
-
         promoType: selectedPromo.promoType,
         status: "Completed",
         pointsEarned,
@@ -314,6 +311,7 @@ const PromoRedemption: React.FC = () => {
       await addDoc(collection(db, "globalTransactions"), transactionData);
       await addDoc(collection(db, "customers", customer.email, "transactions"), transactionData);
       await updateFavoriteCategory(customer.email);
+      await updateCustomerActivity(customer.email);
 
       setMessage(
         `✅ Promo "${selectedPromo.title}" redeemed successfully using ${paymentMethod.toUpperCase()}. Points earned: ${pointsEarned}`
@@ -404,21 +402,20 @@ const PromoRedemption: React.FC = () => {
             </select>
 
             {paymentMethod === "E-Wallet" && (
-  <input
-    type="text"
-    placeholder="Enter E-Wallet Reference Number"
-    value={referenceNo}
-    onChange={(e) => setReferenceNumber(e.target.value)}
-    style={{
-      marginTop: "10px",
-      padding: "8px",
-      border: "1px solid #ccc",
-      borderRadius: "6px",
-      width: "100%",
-    }}
-  />
-)}
-
+              <input
+                type="text"
+                placeholder="Enter E-Wallet Reference Number"
+                value={referenceNo}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+                style={{
+                  marginTop: "10px",
+                  padding: "8px",
+                  border: "1px solid #ccc",
+                  borderRadius: "6px",
+                  width: "100%",
+                }}
+              />
+            )}
 
             <button
               onClick={handleRedeem}
