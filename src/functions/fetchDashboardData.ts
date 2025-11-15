@@ -1,10 +1,31 @@
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../Firebase/firebaseConfig";
-import { isWithinFilter } from "./isWithinFilter";
 
-export const fetchDashboardData = async (filter: string) => {
+export const fetchDashboardData = async (range?: {
+  startDate?: string | Date;
+  endDate?: string | Date;
+}) => {
   const transactionsRef = collection(db, "transactions");
   const snapshot = await getDocs(transactionsRef);
+
+  // normalize range to Date objects (start at 00:00:00, end at 23:59:59.999)
+  let start: Date | null = null;
+  let end: Date | null = null;
+  if (range?.startDate) {
+    start = new Date(range.startDate);
+    start.setHours(0, 0, 0, 0);
+  }
+  if (range?.endDate) {
+    end = new Date(range.endDate);
+    end.setHours(23, 59, 59, 999);
+  }
+
+  const withinRange = (d: Date) => {
+    if (!start && !end) return true;
+    if (start && d < start) return false;
+    if (end && d > end) return false;
+    return true;
+  };
 
   let total = 0;
   let totalTopup = 0;
@@ -28,8 +49,8 @@ export const fetchDashboardData = async (filter: string) => {
     const items = data.items || [];
     const amount = Number(data.amount) || 0;
 
-    // 💸 Collect wallet-topup records
-    if (type === "wallet-topup" && isWithinFilter(dateObj, filter)) {
+    // 💸 Collect wallet-topup records (by range)
+    if (type === "wallet-topup" && withinRange(dateObj)) {
       topupWalletRecords.push({
         id: docSnap.id,
         amount,
@@ -46,8 +67,8 @@ export const fetchDashboardData = async (filter: string) => {
       topupRequests.Total += 1;
     }
 
-    // ✅ Only count completed transactions for sales summary
-    if (status === "Completed" && isWithinFilter(dateObj, filter)) {
+    // ✅ Only count completed transactions for sales summary (by range)
+    if (status === "Completed" && withinRange(dateObj)) {
       const dayKey = dateObj.toISOString().split("T")[0];
 
       // 💰 Total Sales (exclude wallet-topups)

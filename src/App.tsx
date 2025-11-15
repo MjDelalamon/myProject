@@ -16,6 +16,7 @@ import PromoRedemption from "./StaffPage/PromoRedemption";
 import FeedbackList from "./AdminPage/FeedbackList";
 import OrdersStaff from "./StaffPage/OrdersStaff";
 import WalletPageStaff from "./StaffPage/WalletStaff";
+import CustomerAssistanceList from "./AdminPage/CustomerAssistance";
 
 
 
@@ -43,6 +44,7 @@ function App() {
       <Route path="/customers" element={<Customer />} />
       <Route path="/orders" element={<Orders />} />
       <Route path="/transactions" element={<TransactionsList />} />
+      <Route path="/CustomerAssistance" element={<CustomerAssistanceList />} />
 
       <Route path="/rewards" element={<Promotion />} />
       <Route path="/menu" element={<Menu />} />
