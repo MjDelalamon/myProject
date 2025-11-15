@@ -2,12 +2,14 @@
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  
   align-items: center;
   
 }
 
 .intro-card {
-  background-color: #542d00;
+  background-color: #fff;
+  border: 2px solid #8b5e3c;
   padding: 2.5rem;
   border-radius: 1.5rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
@@ -19,7 +21,7 @@
 .intro-title {
   font-size: 2rem;
   font-weight: bold;
-  color: #ffffff; /* Dark brown */
+  color: "brown"; /* Dark brown */
   margin-bottom: 1.5rem;
 }
 
@@ -43,7 +45,7 @@
 }
 
 .admin-button {
-  background-color: #9e8470; /* Coffee brown */
+  background-color: #6e3204 ; /* Coffee brown */
 }
 
 .admin-button:hover {

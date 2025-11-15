@@ -9,7 +9,9 @@ function Intro() {
 
         <div className="intro-buttons">
           <Link to="/Owner">
-            <button className="intro-button admin-button">Start</button>
+            <button className="intro-button admin-button" 
+            style={{background:"#6e3204"}}
+            >Start</button>
           </Link>
         </div>
       </div>

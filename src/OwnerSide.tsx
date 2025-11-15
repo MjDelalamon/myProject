@@ -44,7 +44,9 @@ function Owner() {
     <div className="owner-container">
       {!isLoggedIn ? (
         <div className="login-card">
-          <h2 className="login-title">🔐Please enter pin</h2>
+          <h2 className="login-title"
+          style={{color:"#6e3204"}}  
+          >🔐Please enter pin</h2>
           <input
             type="password"
             placeholder="Enter PIN"
@@ -52,8 +54,10 @@ function Owner() {
             onChange={(e) => setPassword(e.target.value)}
             className="login-input"
           />
-          <button onClick={handleLogin} className="login-button">
-            Login
+          <button onClick={handleLogin} className="login-button"
+          style={{background:"#6e3204"}}
+          >
+            Enter
           </button>
           {error && <p className="error-message">{error}</p>}
           <Link to="/Intro" className="back-link">
