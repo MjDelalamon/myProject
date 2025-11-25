@@ -352,14 +352,14 @@ const PromoRedemption: React.FC = () => {
         {customer && (
           <div className="customer-info">
             <h3>Customer Info</h3>
-            <p><strong>Name:</strong> {customer.fullName}</p>
             <p><strong>Email:</strong> {customer.email}</p>
-            <p><strong>Mobile:</strong> {customer.mobile}</p>
-            <p><strong>Tier:</strong> {customer.tier}</p>
-            <p><strong>Favorite Category:</strong> {customer.favoriteCategory}</p>
+            
+            <p><strong>Name:</strong> {customer.fullName}</p>
+            
+            
             <p><strong>Points:</strong> {customer.points}</p>
             <p><strong>Wallet Balance:</strong> ₱{customer.wallet || 0}</p>
-            <p><strong>Total Spent:</strong> ₱{customer.totalSpent || 0}</p>
+            
           </div>
         )}
 

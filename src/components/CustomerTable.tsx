@@ -71,7 +71,7 @@ export default function CustomerTable({ customers, onView, onDelete }: Props) {
               <td>{c.points}</td>
               <td>
                 <button className="btn view" onClick={() => onView(c)}
-                   style={{ background: "#89dd78ff", color: "white" }}
+                   style={{ background: "#50d635ff", color: "white" }}
                   >View</button>
                 <button className="btn delete" onClick={() => onDelete(c.id)}
                   style={{  background:"#ff4848ff",color:"white"  }}
@@ -119,7 +119,7 @@ export default function CustomerTable({ customers, onView, onDelete }: Props) {
               />
             </div>
             <div style={{ marginTop: 15 }}>
-              <button onClick={downloadQR} style={{marginRight:10,   background: "#65a359ff", color: "white" }}>
+              <button onClick={downloadQR} style={{marginRight:10,   background: "#50d635ff", color: "white" }}>
                  Download
               </button>
               <button onClick={() => setModalQR(null)}

@@ -346,7 +346,7 @@ const WalletPage: React.FC = () => {
                         <>
                           <button
                             onClick={() => openApproveModal(req)}
-                            style={{ background: "#6dff50ff", color: "black" }}
+                            style={{ background: "#48d42cff", color: "white" }}
                           >
                             Approve
                           </button>
@@ -389,11 +389,13 @@ const WalletPage: React.FC = () => {
             <div className="modal-actions">
               <button
                 onClick={confirmApproveRequest}
-                style={{ background: "#cfffc6ff", color: "black" }}
+                style={{ background: "#59b948ff", color: "white" }}
               >
                 Confirm
               </button>
-              <button onClick={() => setShowModal(false)}>Cancel</button>
+              <button onClick={() => setShowModal(false)}
+              style={{ background: "#ff0000ff", color: "white" }}  
+                >Cancel</button>
             </div>
           </div>
         </div>

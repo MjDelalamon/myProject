@@ -377,7 +377,7 @@ const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
       <>
     <SidebarStaff />
     <div className="p-6 ml-64">
-      <h2 className="text-2xl font-semibold mb-4">Redeem Orders</h2>
+      <h2 className="text-2xl font-semibold mb-4"> Request Redeem Orders</h2>
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4">
@@ -425,7 +425,7 @@ const handlePaymentChoice = async (choice: "Cash" | "Wallet") => {
       ) : (
         <div className="table-wrapper">
           <table className="orders-table">
-            <thead>
+            <thead> 
               <tr>
                 <th>Order ID</th>
                 <th>Customer</th>

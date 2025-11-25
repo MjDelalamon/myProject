@@ -224,7 +224,7 @@ const CustomerAssistanceList: React.FC = () => {
                         setSelectedFeedback(f);
                         setReplyMessage(f.reply || "");
                       }}
-                      style={{background:"brown"}}
+                      style={{background:"#28A745"}}
                     >
                       Reply
                     </button>
@@ -251,10 +251,13 @@ const CustomerAssistanceList: React.FC = () => {
                 onChange={(e) => setReplyMessage(e.target.value)}
                 placeholder="Type reply..."
               />
-              <button onClick={submitReply} disabled={replying}>
+              <button onClick={submitReply} disabled={replying}
+              style={{ background: "#50d635ff", color: "white" }}>
                 {replying ? "Sending..." : "Send"}
               </button>
-              <button onClick={() => setSelectedFeedback(null)}>Cancel</button>
+              <button onClick={() => setSelectedFeedback(null)}
+                style={{ background: "#ff0000ff", color: "white" }}
+                >Cancel</button>
             </div>
           </div>
         )}
@@ -280,10 +283,14 @@ const CustomerAssistanceList: React.FC = () => {
                 onChange={(e) => setCustomMessage(e.target.value)}
                 placeholder="Type your message..."
               />    
-              <button onClick={sendCustomMessage} disabled={sendingMessage}>
+              <button onClick={sendCustomMessage} disabled={sendingMessage}
+              style={{ background: "#59b948ff", color: "white" }}
+              >
                 {sendingMessage ? "Sending..." : "Send"}
               </button>
-              <button onClick={() => setSendMessageModal(false)}>Cancel</button>
+              <button onClick={() => setSendMessageModal(false)}
+                style={{ background: "#ff0000ff", color: "white" }} 
+                >Cancel</button>
             </div>
           </div>
         )}

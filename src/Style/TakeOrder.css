@@ -143,6 +143,31 @@ button:disabled {
   font-weight: 600;
 }
 
+.summary-divider {
+  border-top: 1px solid #d9c8b4;
+  margin: 10px 0;
+}
+
+.summary .subtotal {
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.summary .vat {
+  font-weight: 500;
+  font-size: 15px;
+  color: #8b6b4f;
+}
+
+.summary .total {
+  font-size: 18px;
+  font-weight: 700;
+  color: #3e2f1c;
+  background: #f0e6d8;
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+
 /* --- Current Items List --- */
 .order-summary-list {
   margin-top: 20px;

@@ -46,7 +46,7 @@ function Owner() {
         <div className="login-card">
           <h2 className="login-title"
           style={{color:"#6e3204"}}  
-          >🔐Please enter pin</h2>
+          >Please enter pin</h2>
           <input
             type="password"
             placeholder="Enter PIN"

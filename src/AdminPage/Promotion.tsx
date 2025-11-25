@@ -334,6 +334,7 @@ function Promotion() {
 
               <textarea
                 name="description"
+                
                 placeholder="Description"
                 value={form.description || ""}
                 onChange={handleChange}
@@ -341,7 +342,7 @@ function Promotion() {
               />
 
               <div className="modal-actions">
-                <button onClick={handleSubmit} style={{ background: "#3a7c17ff", color: "white" }}>
+                <button onClick={handleSubmit} style={{ background: "#50d635ff", color: "white" }}>
                   {editingId ? "Update" : "Add"}
                 </button>
                 <button

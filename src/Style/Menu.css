@@ -1,8 +1,7 @@
 /* Container */
 .menu-container {
-  max-width: 900px;
-  margin-left: 1000px;
-  margin: 60px auto;
+  max-width: 1000px;
+  margin-left: 15%;
   padding: 40px 25px;
   background-color: #f9f6f2;
   color: #000;
@@ -10,6 +9,9 @@
   border-left: 6px solid #69481d;
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+
+  /* shift slightly to the right */
+  transform: translateX(20px);
 }
 
 /* Header */
@@ -103,7 +105,7 @@
 }
 
 .menu-table button:first-child {
-  background-color: #67ad42ff;
+  background-color: #7bbf59;
   color: #fff;
 }
 

@@ -177,7 +177,7 @@ const FeedbackList: React.FC = () => {
         ) : (
           <div className="feedback-table-wrapper">
             <table className="feedback-table">
-              <thead>
+              <thead >
                 <tr>
                   <th>Customer</th>
                   <th>Rating</th>
@@ -270,6 +270,7 @@ const FeedbackList: React.FC = () => {
                   className="modal-send"
                   onClick={submitReply}
                   disabled={replying}
+                  style={{ background: "#50d635ff", color: "white" }}
                 >
                   {replying ? "Sending..." : "Send Reply"}
                 </button>

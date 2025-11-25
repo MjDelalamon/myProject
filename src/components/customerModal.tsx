@@ -27,7 +27,7 @@ export default function ViewCustomerModal({ customer, onClose }: Props) {
 
         <br />
         <button className="btn" onClick={onClose}
-        style={{ marginLeft: 10, background:"#828282ff",color:"white"  }}>Close</button>
+        style={{ marginLeft: 10, background:"#5b1818ff",color:"white"  }}>Close</button>
       </div>
     </div>
   );
